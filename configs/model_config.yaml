@@ -1,28 +1,16 @@
 # 模型配置
 cdr_algorithm:
-  derivative_method: "central_difference"
+  derivative_calculation: true
   distance_metric: "absolute_difference"
-  warping_constraint: "sakoe_chiba"
-  normalization: true
-
-sliding_window:
-  size: 30
-  stride: 8
-  gaussian_smoothing:
-    enabled: true
-    sigma: 1.0
-  overlap: 0.73
+  warping_path: "dynamic_programming"
 
 network_construction:
-  method: "dfcn_swdrc"
+  method: "dfcn-swdrc"
   correlation_type: "pearson"
-  thresholding:
-    method: "proportional"
-    value: 0.1
-  symmetry: true
+  reconstruction: true
+  normalization: true
 
-functional_delay_network:
+fdn:
   enabled: true
   delay_calculation: "mean_index_difference"
-  normalization: "z_score"
   directed: true

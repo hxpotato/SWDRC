@@ -1,0 +1,27 @@
+# 实验配置
+classification:
+  classifier: "svm"
+  kernel: "rbf"
+  c_value: 1.0
+  cross_validation:
+    folds: 5
+    shuffle: true
+    random_state: 42
+
+feature_selection:
+  p_value_threshold: 0.05
+  bonferroni_correction: true
+  top_features: "auto"
+
+evaluation_metrics:
+  - "accuracy"
+  - "auc"
+  - "sensitivity"
+  - "specificity"
+
+network_analysis:
+  sparsity_range: [0.1, 0.2, 0.3, 0.4]
+  metrics:
+    - "clustering_coefficient"
+    - "small_worldness"
+    - "weighted_degree"
