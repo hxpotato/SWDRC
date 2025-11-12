@@ -1,0 +1,24 @@
+# 数据配置
+dataset:
+  name: "ADNI"
+  description: "Alzheimer's Disease Neuroimaging Initiative"
+  subjects:
+    healthy_controls: 50
+    alzheimer_patients: 38
+  preprocessing:
+    steps:
+      - "remove_first_5_points"
+      - "slice_timing_correction"
+      - "motion_correction"
+      - "spatial_normalization"
+      - "covariate_regression"
+      - "smoothing"
+      - "bandpass_filtering"
+    parameters:
+      motion_threshold: 2.0
+      smoothing_kernel: 6
+      frequency_range: [0.01, 0.08]
+  roi:
+    template: "AAL"
+    regions: 90
+    coordinates: "MNI"
