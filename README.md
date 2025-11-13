@@ -1,279 +1,121 @@
-DFCN-SWDRC: Alzheimer's Disease Diagnosis Using Derivative-based Dynamic Time Warping Functional Connectivity Networks
 
-Project Overview
+---
+
+# Alzheimer's Disease Diagnosis Based on Derivative Dynamic Time Warping Functional Connectivity Networks
+
+> [!NOTE]
+> **Official Repository of the paper:** 文档13链接 (*IEEE Transactions on Medical Imaging, 2025*)
+
+## Method
+
+<div align="center">
+  
+</div>
+<div align="center">
+  <b>Fig. 2. The System Workflow.</b> Constructing CDR, SWDRC, and FDN for Alzheimer's disease diagnosis.
+</div>
+
+This work introduces a novel framework for analyzing brain functional connectivity by addressing the dynamic changes and complex time-delay characteristics of signal transmission between brain regions. The core innovation lies in three interconnected techniques:
+
+1.  **Correlation based on Derivative Regularity (CDR):** This algorithm performs non-linear alignment of fMRI time series derivatives using Dynamic Time Warping (DTW), enabling the capture of transient, physiologically relevant lagged interactions that conventional correlation methods might overlook.
+2.  **Sliding Window based on Derivative Regularity Correlation (SWDRC):** A dynamic functional connectivity network (DFCN) construction method that applies CDR within a sliding window framework to identify local and asynchronous characteristics of brain activity.
+3.  **Functional Delay Network (FDN):** This network explicitly quantifies the relative signal transmission delays between different brain regions, providing a novel perspective on the temporal patterns of information propagation in the brain.
+
+The synergy of SWDRC and FDN allows the model to capture fine-grained temporal alignment features while reflecting explicit delay information, enhancing the discrimination between healthy controls and patients with Alzheimer's disease (AD) or Mild Cognitive Impairment (MCI).
+
+## Dataset
+
+The research utilizes two primary datasets:
+
+1.  **ADNI Dataset:** Resting-state fMRI data from 417 subjects, including 165 Healthy Controls (HC), 108 patients with Alzheimer's Disease (AD), and 144 individuals with Mild Cognitive Impairment (MCI).
+2.  **ABIDE Dataset:** Data from the NYU and UM sites are used for additional validation, comprising 116 individuals with Autism Spectrum Disorder (ASD) and 156 Healthy Controls (HC).
+
+Data preprocessing was performed using the MATLAB-based RESTplus toolkit, including steps like slice-timing correction, head motion correction, spatial normalization, and band-pass filtering. The brain was parcellated into 90 Regions of Interest (ROIs) using the AAL template.
+
+## Code Structure
+
+The provided code and models are available at: https://github.com/hxpotato/SWDRC
+
+(Note: The specific code structure details from the PDF are limited. The repository link above is the primary reference for implementation.)
+
+## Experimental Results & Performance
+
+The proposed methods were rigorously evaluated against several state-of-the-art static and dynamic functional connectivity network construction methods.
+
+### Key Findings:
+*   **Network Properties:** The SWDRC network demonstrated distinctly stronger small-world characteristics compared to other methods, closely aligning with the efficient information transmission observed in real human brain networks.
+    
+    <div align="center">
+      <b>Fig. 6. Small-World Coefficient Calculation Results.</b> SWDRC shows superior small-world properties.
+    </div>
+
+*   **Superior Classification Performance:** The combination of SWDRC and FDN (SWDRC+FDN) achieved the highest classification accuracy in distinguishing HC from AD, HC from MCI, and in three-class classification (HC vs. MCI vs. AD) on the ADNI dataset. It also demonstrated robust performance on the ABIDE dataset (HC vs. ASD).
+
+<table>
+    <tr>
+        <td colspan="7"><b>Table IV: Classification Results on ADNI (HC vs. AD) using SVM</b></td>
+    </tr>
+    <tr>
+        <td><b>Method</b></td>
+        <td><b>Network Type</b></td>
+        <td><b>Accuracy(%)↑</b></td>
+        <td><b>AUC(%)↑</b></td>
+        <td><b>Sensitivity(%)↑</b></td>
+        <td><b>Specificity(%)↑</b></td>
+    </tr>
+    <tr>
+        <td>SFCN[28]</td>
+        <td>Static</td>
+        <td>85.72±0.42**</td>
+        <td>91.30±0.68**</td>
+        <td>79.10±0.95**</td>
+        <td>89.72±0.53*</td>
+    </tr>
+    <tr>
+        <td>FCN-SW[43]</td>
+        <td>Dynamic</td>
+        <td>85.27±0.63**</td>
+        <td>91.81±0.74**</td>
+        <td>79.20±0.88**</td>
+        <td>89.12±0.47**</td>
+    </tr>
+    <tr>
+        <td>Brain-JEPA[26]</td>
+        <td>Dynamic</td>
+        <td>88.62±0.58*</td>
+        <td>93.12±0.74**</td>
+        <td>84.64±0.89*</td>
+        <td>89.16±0.66**</td>
+    </tr>
+    <tr>
+        <td><b>SWDRC+FDN (Ours)</b></td>
+        <td><b>Dynamic</b></td>
+        <td><b>90.39±0.65</b></td>
+        <td><b>96.31±0.61</b></td>
+        <td><b>88.49±0.72</b></td>
+        <td><b>91.52±0.58</b></td>
+    </tr>
+</table>
+
+*   **Functional Delay Network Analysis:** The FDN revealed pronounced alterations in signal transmission delays in AD and MCI groups compared to HC, particularly within the default mode network and connections involving frontal and sensory-related regions. This provides insights into the pathological mechanisms of AD.
+    
+    <div align="center">
+      <b>Fig. 8. Schematic Diagram of FDN Differences (HC vs. AD).</b> Thicker edges indicate longer delays in the AD group.
+    </div>
 
-This repository implements the method proposed in the paper "Alzheimer's Disease Diagnosis Based on Derivative Dynamic Time Warping Functional Connectivity Networks" (IEEE TRANSACTIONS ON MEDICAL IMAGING, 2020). It provides a framework for constructing functional connectivity networks using derivative dynamic time warping and diagnosing Alzheimer's Disease.
+## Conclusion
 
-Method Introduction
+This study addresses the limitations of traditional functional connectivity methods by accounting for the asynchronous nature of interregional brain communication. The SWDRC and FDN frameworks, built upon the novel CDR algorithm, effectively capture dynamic and delay-sensitive features from fMRI data. The combined approach (SWDRC+FDN) demonstrates superior performance in classifying neurodegenerative conditions, offering a powerful and interpretable tool for early diagnosis and understanding of brain network alterations in diseases like Alzheimer's.
 
-Core Innovations
+## Citation
 
-DFCN-SWDRC (Derivative-based Functional Connectivity Network with Sliding Window and Dynamic Time Warping Correlation) main innovations:
-
-1. Derivative Dynamic Time Warping Algorithm: Considers the differential delays in signal transmission between brain regions.
-2. Sliding Window Technique: Incorporates sliding windows to extract local and asynchronous features of brain activity.
-3. Functional Delay Network: Analyzes measurable delays in signal transmission between brain regions in healthy individuals and AD patients.
-
-Algorithm Flowchart
-
-(Flowchart would be inserted here)
-
-Core Algorithms
-
-Correlation based on Derivative Rules (CDR) Algorithm
-
-Algorithm 1: Correlation Calculation based on Derivative Rules (CDR)
-Input: X, Y - time series
-Output: P_X'Y' - time series correlation
-Steps:
-1. Calculate derivative transformation of time series
-2. Compute distance matrix based on derivative sequences
-3. Calculate path using dynamic time warping
-4. Perform path backtracking
-5. sequence alignment reconstruction
-6. Compute Pearson correlation coefficient of reconstructed sequences
-
-
-DFCN-SWDRC Construction Algorithm
-
-Algorithm 2: DFCN-SWDRC Construction
-Input: X, Y - time series, WindowSize - window size, StepSize - step size
-Output: CorrelationValue - time series correlation
-Steps:
-1. Apply Gaussian smoothing to time series
-2. Split into subsequences using sliding windows
-3. Apply CDR algorithm to each window
-4. Calculate mean correlation across all windows
-
-
-Dataset
-
-Data Source
-
-• Uses baseline rs-fMRI data from 88 subjects in the ADNI database
-
-• Includes 50 healthy controls (HC) and 38 AD patients
-
-• Detailed participant information:
-
-Table I: Participant Information
-Group AD HC
-
-Number of Participants 33 50
-
-Gender (Male/Female) 16/17 22/28
-
-Mean Age (Standard Deviation) 72.5(7.2) 75.4(6.6)
-
-Data Preprocessing
-
-Preprocessing using MATLAB-based restplus toolkit:
-• Remove first 5 time points
-
-• Slice timing correction
-
-• Head motion correction (excluding data with >2mm translation or >2° rotation)
-
-• Spatial normalization using EPI template
-
-• Covariate regression
-
-• Smoothing with 6mm Gaussian kernel
-
-• Band-pass filtering (0.01-0.08Hz)
-
-• Brain parcellation into 90 ROIs using AAL template
-
-Experimental Setup
-
-Hyperparameter Selection
-
-Optimal sliding window parameters determined through ablation experiments:
-• Window size: 30
-
-• Step size: 8
-
-• These parameters yielded the smallest average p-value (0.002099) for top 1% functional connections
-
-Network Property Analysis
-
-Small-World Coefficient Analysis Results
-(Results would be inserted here)
-
-Clustering Coefficient Calculation Results
-(Results would be inserted here)
-
-Experimental Results
-
-Significant Differential Functional Connections
-
-Table III: Functional Connections with Significant Differences
-Connected ROIs (AAL Number) p-value(↓)
-
-Middle Occipital Gyrus(51)-Inferior Occipital Gyrus(53) 8.45×10⁻⁵⁵
-
-Superior Frontal Gyrus, Orbital(5)-Temporal Pole: Middle Temporal Gyrus(88) 1.141×10⁻⁴⁴
-
-Heatmap of Significant Differential Functional Connections
-(Heatmap would be inserted here)
-
-Functional Delay Network Analysis
-
-Significant Differential Brain Regions
-Table IV: Brain Regions with Significant Differences
-Brain Region (AAL Number) p-value(↓) Mean Difference Between Groups(↑)
-
-Supramarginal Gyrus(63) 1.098×10⁻⁶⁶ 2.289
-
-Schematic Diagram of Functional Delay Network Differences
-(Diagram would be inserted here)
-
-Classification Performance
-
-Binary Classification Results on ADNI Dataset (HC vs. AD)
-
-Table VI: Binary Classification Results on ADNI Dataset
-
-Method Number of Features Accuracy(↑) AUC(↑) Sensitivity(↑) Specificity(↑)
-
-SFCN 38 71.55% 66.84% 0% 100%
-
-FCN-SW 329 86.74% 94.42% 78.78% 92%
-
-DFCN-SWDRC (Ours) 295 96.38% 99.45% 93.93% 98%
-
-FDN (Ours) 263 93.97% 98.60% 96.96% 100%
-
-Binary Classification Results on ABIDE-UM Dataset (HC vs. ASD)
-
-Table VII: Binary Classification Results on ABIDE-UM Dataset
-
-Method Number of Features Accuracy(↑) AUC(↑) Sensitivity(↑) Specificity(↑)
-
-SFCN 371 85.71% 95.16% 81.40% 88.71%
-
-DFCN-DRC (Ours) 233 95.24% 99.10% 95.35% 95.16%
-
-FDN (Ours) 197 95.24% 98.72% 95.16% 95.16%
-
-Code Structure
-
-
-.
-├── data/                    # Data directory
-│   ├── adni/               # ADNI dataset
-│   ├── abide/              # ABIDE dataset
-│   └── preprocessed/       # Preprocessed data
-├── src/                    # Source code
-│   ├── algorithms/         # Core algorithms
-│   │   ├── cdr.py         # CDR algorithm implementation
-│   │   ├── dtw.py         # Dynamic Time Warping
-│   │   └── sliding_window.py # Sliding window processing
-│   ├── models/            # Model definitions
-│   │   ├── fcn_models.py  # Functional connectivity network models
-│   │   └── fdn_models.py  # Functional delay network models
-│   ├── utils/             # Utility functions
-│   │   ├── preprocessing.py # Data preprocessing
-│   │   └── visualization.py # Visualization tools
-│   └── evaluation/        # Evaluation modules
-│       ├── classification.py # Classification evaluation
-│       └── network_analysis.py # Network analysis
-├── experiments/           # Experiment scripts
-│   ├── classification/    # Classification experiments
-│   ├── ablation/          # Ablation experiments
-│   └── network_analysis/ # Network analysis experiments
-├── configs/              # Configuration files
-│   ├── data_config.yaml  # Data configuration
-│   ├── model_config.yaml # Model configuration
-│   └── experiment_config.yaml # Experiment configuration
-└── results/              # Result outputs
-    ├── figures/          # Generated figures
-    └── tables/           # Result tables
-
-
-Quick Start
-
-Environment Setup
-
-conda create -n dfcn-swdrc python=3.8
-conda activate dfcn-swdrc
-pip install -r requirements.txt
-
-
-Data Preprocessing
-
-from src.utils.preprocessing import DataPreprocessor
-
-preprocessor = DataPreprocessor(config_path='configs/data_config.yaml')
-preprocessed_data = preprocessor.process_raw_fmri(data_path='data/raw/')
-
-
-Functional Connectivity Network Construction
-
-from src.algorithms.cdr import CDRAlgorithm
-from src.models.fcn_models import DFCN_SWDRC
-
-cdr = CDRAlgorithm()
-dfcn_model = DFCN_SWDRC(cdr_algorithm=cdr, window_size=30, stride=8)
-fcn_matrix = dfcn_model.build_network(time_series_data)
-
-
-Classification Experiment
-
-python experiments/classification/run_adni_classification.py \
-  --config configs/experiment_config.yaml \
-  --model dfcn-swdrc \
-  --dataset adni
-
-
-Citation
-
-If you use this code or method, please cite the original paper:
-@article{Hong2020,
+If you find this repository useful in your research, please consider citing the original paper:
+```
+@article{hong2025alzheimer,
   title={Alzheimer's Disease Diagnosis Based on Derivative Dynamic Time Warping Functional Connectivity Networks},
-  author={Xin Hong and Yongze Lin},
+  author={Hong, Xin and Lin, Yongze and Wu, Zhenghao},
   journal={IEEE Transactions on Medical Imaging},
-  year={2020},
-  volume={XX},
-  number={XX},
-  pages={1-11}
+  year={2025},
+  publisher={IEEE}
 }
-
-
-Acknowledgments
-
-Thanks to the ADNI and ABIDE projects for data support, and all researchers who contributed to this study.
-
-License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
-
-Changelog
-
-v1.0.0 (2024-12-01)
-
-• Initial version release
-
-• Implementation of DFCN-SWDRC core algorithms
-
-• Added support for ADNI and ABIDE datasets
-
-• Provided complete experiment reproduction scripts
-
-v0.1.0 (2024-11-15)
-
-• Basic framework setup
-
-• Core algorithm implementation
-
-• Preliminary experimental validation
-
-Contact Us
-
-For questions or suggestions, please contact:
-• Email: xinhong@hqu.edu.cn
-
-• GitHub Issues: https://github.com/your-repo/dfcn-swdrc
-
-Note: This README is compiled based on the content of the original paper. For specific implementation details, please refer to the source code and the original paper.
-
+```
