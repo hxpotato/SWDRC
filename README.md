@@ -15,28 +15,6 @@ The study proposes three interconnected core techniques to address limitations o
 2. **SWDRC (Sliding Window based on Derivative Regularity Correlation)**: Uses CDR in a sliding window format to align signal dynamics, capturing subtle spatio-temporal changes in neural regulation.
 3. **FDN (Functional Delay Network)**: Measures relative transmission delays between brain regions, clarifying temporal patterns of signal propagation and quantifying interregional time offsets.
 
-
-### Core Algorithm: CDR
-The CDR algorithm proceeds through 6 key steps:
-1. Derivative transformation of brain region time series to reflect local trend changes.
-2. Distance matrix computation between derivative sequences of two brain regions.
-3. Path computation using dynamic time warping to find minimum warping cost.
-4. Path backtracking from sequence end to start to obtain optimal alignment.
-5. Sequence alignment reconstruction based on optimal path index pairs.
-6. Calculation of Pearson Correlation Coefficient (PCC) for reconstructed sequences.
-
-### SWDRC Construction
-1. Apply Gaussian smoothing to ROI time series.
-2. Segment smoothed signals into overlapping subsequences using sliding window.
-3. Use derivative Dynamic Time Warping (dDTW) within each window to synchronize subsequence derivatives.
-4. Reconstruct aligned subsequences and compute PCC for each window.
-5. Take mean PCC across all windows as edge weight for SWDRC network.
-
-### FDN Construction
-1. Record optimal matching path within each sliding window during SWDRC construction.
-2. Calculate average index difference of path pairs across all windows to quantify interregional delays.
-3. Aggregate delay coefficients for all ROI pairs to build FDN.
-
 ## Dataset
 Two public datasets were used for experiments:
 
@@ -148,4 +126,5 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
