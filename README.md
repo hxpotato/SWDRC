@@ -1,4 +1,5 @@
 # Alzheimer’s Disease Diagnosis Based on Derivative Dynamic Time Warping Functional Connectivity Networks
+   <p style="text-align:justify;">
 Given the differences in signal transmission delays across brain regions between patients and healthy individuals, based on Derivative Regularity (CDR) algorithm, we constructed the dynamic functional connectivity network: Slide Window based
 on the Derivative Regularity Correlation (SWDRC) and the Functional Delay Network (FDN) to enhance the detection and analysis of Alzheimer's Disease.
 
@@ -10,7 +11,7 @@ The study proposes three interconnected core techniques to address limitations o
 1. **CDR (Correlation based on Derivative Regularity)**: Alters time series features before similarity evaluation, uncovering lagged interactions overlooked by conventional methods. It aligns first-order signal derivatives via Dynamic Time Warping (DTW) to emphasize shape similarity and minimize temporal distortion.
 2. **SWDRC (Sliding Window based on Derivative Regularity Correlation)**: Uses CDR in a sliding window format to align signal dynamics, capturing subtle spatio-temporal changes in neural regulation.
 3. **FDN (Functional Delay Network)**: Measures relative transmission delays between brain regions, clarifying temporal patterns of signal propagation and quantifying interregional time offsets.
-   
+    </p>
 <p >
   <img src="./figs/Fig2.TheSystemWorkflow.png" width="1000" alt="FCN Construction">
    <p style="text-align:justify;">
@@ -134,6 +135,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
