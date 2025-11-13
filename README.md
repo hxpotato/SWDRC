@@ -1,117 +1,152 @@
-Alzheimer's Disease Diagnosis Based on Derivative Dynamic Time Warping Functional Connectivity Networks
+# Alzheimer’s Disease Diagnosis Based on Derivative Dynamic Time Warping Functional Connectivity Networks
+Official Repository of the paper: [Alzheimer’s Disease Diagnosis Based on Derivative Dynamic Time Warping Functional Connectivity Networks](https://github.com/hxpotato/SWDRC)
 
-[!NOTE]
-
-Official Repository of the paper: 文档13链接 (IEEE Transactions on Medical Imaging, 2025)
-
-Method
+## Method
+<p align="center">
+  <img src="./figs/Fig. 2. The System Workflow.png" width="600" alt="FCN Construction">
+</p>
 
 <div align="center">
-  
+<b>Schematic Diagram of FCN Construction</b> (a) Static FCN; (b) DFCN Based on CDR
 </div>
+
+The study proposes three interconnected core techniques to address limitations of traditional functional connectivity analysis:
+1. **CDR (Correlation based on Derivative Regularity)**: Alters time series features before similarity evaluation, uncovering lagged interactions overlooked by conventional methods. It aligns first-order signal derivatives via Dynamic Time Warping (DTW) to emphasize shape similarity and minimize temporal distortion.
+2. **SWDRC (Sliding Window based on Derivative Regularity Correlation)**: Uses CDR in a sliding window format to align signal dynamics, capturing subtle spatio-temporal changes in neural regulation.
+3. **FDN (Functional Delay Network)**: Measures relative transmission delays between brain regions, clarifying temporal patterns of signal propagation and quantifying interregional time offsets.
+
+<p align="center">
+  <img src="./assets/system_workflow.png" width="600" alt="System Workflow">
+</p>
+
 <div align="center">
-  <b>Fig. 2. The System Workflow.</b> Constructing CDR, SWDRC, and FDN for Alzheimer's disease diagnosis.
+<b>The System Workflow</b> of CDR, SWDRC, and FDN construction
 </div>
 
-This work introduces a novel framework for analyzing brain functional connectivity by addressing the dynamic changes and complex time-delay characteristics of signal transmission between brain regions. The core innovation lies in three interconnected techniques:
+### Core Algorithm: CDR
+The CDR algorithm proceeds through 6 key steps:
+1. Derivative transformation of brain region time series to reflect local trend changes.
+2. Distance matrix computation between derivative sequences of two brain regions.
+3. Path computation using dynamic time warping to find minimum warping cost.
+4. Path backtracking from sequence end to start to obtain optimal alignment.
+5. Sequence alignment reconstruction based on optimal path index pairs.
+6. Calculation of Pearson Correlation Coefficient (PCC) for reconstructed sequences.
 
-1.  Correlation based on Derivative Regularity (CDR): This algorithm performs non-linear alignment of fMRI time series derivatives using Dynamic Time Warping (DTW), enabling the capture of transient, physiologically relevant lagged interactions that conventional correlation methods might overlook.
-2.  Sliding Window based on Derivative Regularity Correlation (SWDRC): A dynamic functional connectivity network (DFCN) construction method that applies CDR within a sliding window framework to identify local and asynchronous characteristics of brain activity.
-3.  Functional Delay Network (FDN): This network explicitly quantifies the relative signal transmission delays between different brain regions, providing a novel perspective on the temporal patterns of information propagation in the brain.
+### SWDRC Construction
+1. Apply Gaussian smoothing to ROI time series.
+2. Segment smoothed signals into overlapping subsequences using sliding window.
+3. Use derivative Dynamic Time Warping (dDTW) within each window to synchronize subsequence derivatives.
+4. Reconstruct aligned subsequences and compute PCC for each window.
+5. Take mean PCC across all windows as edge weight for SWDRC network.
 
-The synergy of SWDRC and FDN allows the model to capture fine-grained temporal alignment features while reflecting explicit delay information, enhancing the discrimination between healthy controls and patients with Alzheimer's disease (AD) or Mild Cognitive Impairment (MCI).
+### FDN Construction
+1. Record optimal matching path within each sliding window during SWDRC construction.
+2. Calculate average index difference of path pairs across all windows to quantify interregional delays.
+3. Aggregate delay coefficients for all ROI pairs to build FDN.
 
-Dataset
+## Dataset
+Two public datasets were used for experiments:
 
-The research utilizes two primary datasets:
+### ADNI Dataset
+- 417 subjects: 165 Healthy Controls (HC), 108 Alzheimer’s Disease (AD) patients, 144 Mild Cognitive Impairment (MCI) individuals.
+- Mean age: AD (75.11±5.92), HC (74.88±7.65), MCI (72.26±7.30).
+- Imaging parameters: 3.0T MRI scanner, EPI sequences, 140 time points, TE=30ms, TR=3000ms, 48 slices, spatial resolution=3.31×3.31×3.31mm³, FA=80°.
 
-1.  ADNI Dataset: Resting-state fMRI data from 417 subjects, including 165 Healthy Controls (HC), 108 patients with Alzheimer's Disease (AD), and 144 individuals with Mild Cognitive Impairment (MCI).
-2.  ABIDE Dataset: Data from the NYU and UM sites are used for additional validation, comprising 116 individuals with Autism Spectrum Disorder (ASD) and 156 Healthy Controls (HC).
+### ABIDE Dataset
+- Data from two largest sites (NYU, UM): 116 Autism Spectrum Disorder (ASD) patients, 156 HC.
+- Mean age: ASD (14.51±5.81), HC (15.48±5.42).
+- Standardized preprocessing including head motion correction, temporal smoothing, spatial normalization, and denoising.
 
-Data preprocessing was performed using the MATLAB-based RESTplus toolkit, including steps like slice-timing correction, head motion correction, spatial normalization, and band-pass filtering. The brain was parcellated into 90 Regions of Interest (ROIs) using the AAL template.
+### Data Preprocessing
+Performed using MATLAB-based RESTplus toolkit:
+1. Removal of first 5 time points.
+2. Slice-timing correction and head motion correction (excluding data with translations >2mm or rotations >2°).
+3. Spatial normalization to EPI template.
+4. Regression of nuisance covariates (6 head motion parameters, white matter signals, cerebrospinal fluid signals, global brain signals).
+5. Smoothing with 6mm Gaussian kernel and band-pass filtering (0.01–0.08Hz).
+6. Parcellation into 90 ROIs using AAL template and extraction of mean time series.
 
-Code Structure
+## Code Structure
+```
+.
+├── configs                   # Experiment configuration files
+├── data                      # Dataset storage and preprocessing scripts
+│   ├── adni_preprocess.py    # ADNI dataset preprocessing
+│   ├── abide_preprocess.py   # ABIDE dataset preprocessing
+│   └── utils.py              # Data utility functions
+├── models                    # Model definitions
+│   ├── cdr.py                # CDR algorithm implementation
+│   ├── swdrc.py              # SWDRC network construction
+│   ├── fdn.py                # FDN network construction
+│   └── utils.py              # Model utility functions
+├── experiments               # Experiment scripts
+│   ├── classification.py     # Classification task implementation
+│   ├── network_analysis.py   # Network property analysis
+│   └── hyperparameter_search.py # Grid search for optimal parameters
+├── utils                     # Shared utilities
+│   ├── metrics.py            # Evaluation metrics (ACC, AUC, sensitivity, specificity)
+│   ├── visualization.py      # Result visualization tools
+│   └── tools.py              # General helper functions
+├── main.py                   # Main entry point for running experiments
+└── requirements.txt          # Dependencies
+```
 
-The provided code and models are available at: https://github.com/hxpotato/SWDRC
+## Key Experimental Results
+### Hyperparameter Optimization
+- Optimal sliding window size: 10, step size: 4 (minimized mean p-value of top 1% functional connections).
 
-(Note: The specific code structure details from the PDF are limited. The repository link above is the primary reference for implementation.)
+### Network Properties
+- **Small-World Coefficient**: SWDRC network shows stronger small-world characteristics than comparative methods (SFCN, FCN-SW, DCC, etc.) across sparsity 0.1–0.4.
+- **Clustering Coefficient**: SWDRC achieves higher clustering coefficients at all sparsity levels, capturing modular structure of brain functions.
 
-Experimental Results & Performance
+### Classification Performance
+| Task | Method | Accuracy (%) | AUC (%) |
+|------|--------|--------------|---------|
+| HC vs. AD (ADNI) | SWDRC+FDN | 90.39±0.65 | 96.31±0.61 |
+| HC vs. MCI (ADNI) | SWDRC+FDN | 84.99±0.66 | 88.43±0.73 |
+| HC vs. MCI vs. AD (ADNI) | SWDRC+FDN | 86.49±0.62 | 91.12±0.48 |
+| HC vs. ASD (ABIDE) | SWDRC+FDN | 92.47±0.58 | 96.91±0.52 |
 
-The proposed methods were rigorously evaluated against several state-of-the-art static and dynamic functional connectivity network construction methods.
+### FDN Analysis
+- Network delay increases from HC → MCI → AD, with significant differences in key brain regions (lenticular nucleus, supplementary motor area, superior occipital gyrus).
+- Critical delayed connections: Posterior cingulate cortex-angular gyrus (AD vs. HC), orbitofrontal cortex-temporal pole (MCI vs. HC).
 
-Key Findings:
+## Launching Experiments
+### Environment
+```
+conda create -n ad_diagnosis python=3.8
+pip install -r requirements.txt
+```
 
-•   Network Properties: The SWDRC network demonstrated distinctly stronger small-world characteristics compared to other methods, closely aligning with the efficient information transmission observed in real human brain networks.
+### Run Classification Experiments
+```
+python main.py \
+  --task classification \
+  --dataset adni \
+  --model swdrc+fdn \
+  --window_size 10 \
+  --step_size 4 \
+  --classifier svm
+```
 
-    
-    <div align="center">
-      <b>Fig. 6. Small-World Coefficient Calculation Results.</b> SWDRC shows superior small-world properties.
-    </div>
+### Run Network Analysis
+```
+python main.py \
+  --task network_analysis \
+  --dataset adni \
+  --model swdrc \
+  --sparsity 0.2
+```
 
-•   Superior Classification Performance: The combination of SWDRC and FDN (SWDRC+FDN) achieved the highest classification accuracy in distinguishing HC from AD, HC from MCI, and in three-class classification (HC vs. MCI vs. AD) on the ADNI dataset. It also demonstrated robust performance on the ABIDE dataset (HC vs. ASD).
+## Acknowledgement
+This work is supported by:
+- Scientific Research Start-up Fund Project for High-level Researchers of Huaqiao University (Grant 22BS105)
+- Scientific and Technological Major Special Project of Fujian Provincial Health Commission (Grants 2023Y9376, 2021ZD01004)
+- Natural Science Foundation of Fujian Province, China (Grant 2022J01318)
 
-<table>
-    <tr>
-        <td colspan="7"><b>Table IV: Classification Results on ADNI (HC vs. AD) using SVM</b></td>
-    </tr>
-    <tr>
-        <td><b>Method</b></td>
-        <td><b>Network Type</b></td>
-        <td><b>Accuracy(%)↑</b></td>
-        <td><b>AUC(%)↑</b></td>
-        <td><b>Sensitivity(%)↑</b></td>
-        <td><b>Specificity(%)↑</b></td>
-    </tr>
-    <tr>
-        <td>SFCN[28]</td>
-        <td>Static</td>
-        <td>85.72±0.42</td>
-        <td>91.30±0.68</td>
-        <td>79.10±0.95</td>
-        <td>89.72±0.53*</td>
-    </tr>
-    <tr>
-        <td>FCN-SW[43]</td>
-        <td>Dynamic</td>
-        <td>85.27±0.63</td>
-        <td>91.81±0.74</td>
-        <td>79.20±0.88</td>
-        <td>89.12±0.47</td>
-    </tr>
-    <tr>
-        <td>Brain-JEPA[26]</td>
-        <td>Dynamic</td>
-        <td>88.62±0.58*</td>
-        <td>93.12±0.74</td>
-        <td>84.64±0.89*</td>
-        <td>89.16±0.66</td>
-    </tr>
-    <tr>
-        <td><b>SWDRC+FDN (Ours)</b></td>
-        <td><b>Dynamic</b></td>
-        <td><b>90.39±0.65</b></td>
-        <td><b>96.31±0.61</b></td>
-        <td><b>88.49±0.72</b></td>
-        <td><b>91.52±0.58</b></td>
-    </tr>
-</table>
-
-•   Functional Delay Network Analysis: The FDN revealed pronounced alterations in signal transmission delays in AD and MCI groups compared to HC, particularly within the default mode network and connections involving frontal and sensory-related regions. This provides insights into the pathological mechanisms of AD.
-
-    
-    <div align="center">
-      <b>Fig. 8. Schematic Diagram of FDN Differences (HC vs. AD).</b> Thicker edges indicate longer delays in the AD group.
-    </div>
-
-Conclusion
-
-This study addresses the limitations of traditional functional connectivity methods by accounting for the asynchronous nature of interregional brain communication. The SWDRC and FDN frameworks, built upon the novel CDR algorithm, effectively capture dynamic and delay-sensitive features from fMRI data. The combined approach (SWDRC+FDN) demonstrates superior performance in classifying neurodegenerative conditions, offering a powerful and interpretable tool for early diagnosis and understanding of brain network alterations in diseases like Alzheimer's.
-
-Citation
-
-If you find this repository useful in your research, please consider citing the original paper:
-
+## Citation
+If you find this repository useful in your research, please consider giving a star :star: and a citation
+```
 @article{hong2025alzheimer,
   title={Alzheimer's Disease Diagnosis Based on Derivative Dynamic Time Warping Functional Connectivity Networks},
   author={Hong, Xin and Lin, Yongze and Wu, Zhenghao},
@@ -119,3 +154,4 @@ If you find this repository useful in your research, please consider citing the 
   year={2025},
   publisher={IEEE}
 }
+```
