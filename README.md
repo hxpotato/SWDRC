@@ -7,6 +7,7 @@ The study proposes three interconnected core techniques to address limitations o
 1. **CDR (Correlation based on Derivative Regularity)**: Alters time series features before similarity evaluation, uncovering lagged interactions overlooked by conventional methods. It aligns first-order signal derivatives via Dynamic Time Warping (DTW) to emphasize shape similarity and minimize temporal distortion.
 2. **SWDRC (Sliding Window based on Derivative Regularity Correlation)**: Uses CDR in a sliding window format to align signal dynamics, capturing subtle spatio-temporal changes in neural regulation.
 3. **FDN (Functional Delay Network)**: Measures relative transmission delays between brain regions, clarifying temporal patterns of signal propagation and quantifying interregional time offsets.
+   
 <p align="center">
   <img src="./figs/Fig. 2. The System Workflow.png" width="600" alt="FCN Construction">
 </p>
@@ -126,6 +127,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
