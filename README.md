@@ -16,7 +16,7 @@ Constructing SWDRC: (e) The original sequence is reconstructed according to the 
 Constructing FDN: (h) The optimal path for each sub-window is recorded, and the corresponding relative delay coefficients are estimated;(i) Delay coefficients for each pair of ROI are then aggregated to construct the FDN.
    
 <p align="center">
-  <img src="./figs/Fig2.TheSystemWorkflow.png" width="800" alt="FCN Construction">
+  <img src="./figs/Fig2.TheSystemWorkflow.png" width="1000" alt="FCN Construction">
 </p>
 
 
@@ -134,6 +134,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
