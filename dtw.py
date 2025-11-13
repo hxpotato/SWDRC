@@ -13,7 +13,6 @@
 #Version: v1.0.0
 #Code Repository: https://github.com/hxpotato/SWDRC
 #Copyright © 2025 IEEE
-#This work is licensed under the MIT License (see LICENSE for details)
 #This code is intended exclusively for academic and research use.
 #====================================================================
 
@@ -25,8 +24,8 @@ from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
 
 # ====== User Configuration Area ======
-input_folder  = "G:/WPSData/Code/TMI_lastexp/roi_data/data_EMCI_CN"   # Folder containing original ROI time series txt files
-output_folder = "G:/WPSData/Code/TMI_lastexp/out_put_all/ori_dtw/EMCI_CN"  # Folder to save the output DTW matrices
+input_folder  = "./input_folder"   # Folder containing original ROI time series txt files
+output_folder = "./outfolder"  # Folder to save the output DTW matrices
 OUTPUT_FOLDER = output_folder
 INPUT_FOLDER = input_folder
 N_ROIS        = 90                             # Number of ROIs according to AAL90 atlas
@@ -69,5 +68,6 @@ if __name__ == "__main__":
     # Parallel distribution: each process handles one file
     with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
         executor.map(process_file, files)
+
 
 
