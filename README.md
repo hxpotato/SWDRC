@@ -3,16 +3,13 @@ The innovation of this paper lies in the development of the SWDRC method, which 
 
 Official Repository of the paper: [Alzheimer’s Disease Diagnosis Based on Derivative Dynamic Time Warping Functional Connectivity Networks](https://github.com/hxpotato/SWDRC)
 ## Method
-<p align="center">
-  <img src="./figs/Fig. 2. The System Workflow.png" width="600" alt="FCN Construction">
-</p>
-
-
 The study proposes three interconnected core techniques to address limitations of traditional functional connectivity analysis:
 1. **CDR (Correlation based on Derivative Regularity)**: Alters time series features before similarity evaluation, uncovering lagged interactions overlooked by conventional methods. It aligns first-order signal derivatives via Dynamic Time Warping (DTW) to emphasize shape similarity and minimize temporal distortion.
 2. **SWDRC (Sliding Window based on Derivative Regularity Correlation)**: Uses CDR in a sliding window format to align signal dynamics, capturing subtle spatio-temporal changes in neural regulation.
 3. **FDN (Functional Delay Network)**: Measures relative transmission delays between brain regions, clarifying temporal patterns of signal propagation and quantifying interregional time offsets.
-
+<p align="center">
+  <img src="./figs/Fig. 2. The System Workflow.png" width="600" alt="FCN Construction">
+</p>
 <div align="center">
 <b> (a) After preprocessing the rs-fMRI data, time series for each ROI are extracted using the AAL template and smoothed. A sliding window is then applied to segment the time series into subsequences, from which derivatives are computed; (b) The distance matrix within the subsequences is calculated; (c) The optimal path distance is computed based on the distance matrix; (d) Path backtracking is performed based on the optimal distance value to obtain the best sequence alignment.(e) The original sequence is reconstructed according to the alignment results; (f) The PCC of the reconstructed subsequences within each window is computed, and the mean PCC across all windows is used as the functional connectivity coefficient; (g) Functional connectivity coefficients for all ROI pairs are then calculated to build the functional connectivity network. (h) The optimal path for each sub-window is recorded, and the corresponding relative delay coefficients are estimated;(i) Delay coefficients for each pair of ROI are then aggregated to construct the FDN.
 </div>
@@ -129,6 +126,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
