@@ -20,11 +20,13 @@ Two public datasets were used for experiments:
 - 417 subjects: 165 Healthy Controls (HC), 108 Alzheimer’s Disease (AD) patients, 144 Mild Cognitive Impairment (MCI) individuals.
 - Mean age: AD (75.11±5.92), HC (74.88±7.65), MCI (72.26±7.30).
 - Imaging parameters: 3.0T MRI scanner, EPI sequences, 140 time points, TE=30ms, TR=3000ms, 48 slices, spatial resolution=3.31×3.31×3.31mm³, FA=80°.
-
+- ADNI official website: \url{http://adni.loni.usc.edu}
+  
 ### ABIDE Dataset
 - Data from two largest sites (NYU, UM): 116 Autism Spectrum Disorder (ASD) patients, 156 HC.
 - Mean age: ASD (14.51±5.81), HC (15.48±5.42).
 - Standardized preprocessing including head motion correction, temporal smoothing, spatial normalization, and denoising.
+- ABIDE official website: \url{https://fcon_1000.projects.nitrc.org/indi/abide/}
 
 ### Data Preprocessing
 Performed using MATLAB-based RESTplus toolkit:
@@ -124,6 +126,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
