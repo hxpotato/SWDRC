@@ -9,7 +9,7 @@ The study proposes three interconnected core techniques to address limitations o
 3. **FDN (Functional Delay Network)**: Measures relative transmission delays between brain regions, clarifying temporal patterns of signal propagation and quantifying interregional time offsets.
    
 <p align="center">
-  <img src="./figs/Fig. 2. The System Workflow.png" width="600" alt="FCN Construction">
+  <img src="./figs/Fig2.TheSystemWorkflow.png" width="600" alt="FCN Construction">
 </p>
 
 
@@ -124,6 +124,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
