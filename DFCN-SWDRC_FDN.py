@@ -8,7 +8,7 @@ import os
 
 # Input and output folder paths
 in_folder = './ADCN_ROI/'
-out_folder = 'H:/DtwData/dDTW_Ori_sqrt_new/WDO_per1111/'
+out_folder = './out_folder/'
 
 # Window sizes and stride parameters
 window_size = [i for i in range(10, 55, 5)]
@@ -721,3 +721,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
