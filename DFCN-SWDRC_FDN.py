@@ -25,7 +25,7 @@ import numpy as np
 import os
 
 # Input and output folder paths
-in_folder = './ADCN_ROI/'
+in_folder = './input_folder/'
 out_folder = './out_folder/'
 
 # Window sizes and stride parameters
@@ -739,6 +739,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
