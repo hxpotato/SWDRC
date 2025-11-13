@@ -7,7 +7,7 @@
 # Methodology: Deep Learning-based Unified Segmentation
 # Dataset: Multi-center Cardiac Imaging (n=1300+ patients)
 # Modality: Cardiac Magnetic Resonance Imaging (MRI)
-# Corresponding Author: potato Team
+# Corresponding Author: Xin Hong, Yongze Lin,and Zhenghao Wu
 # Affiliation: HuaQiao University
 # Contact: [email/contact information]
 # Version: v1.0.0
@@ -34,7 +34,7 @@ import logging
 
 # Input and output folder paths
 in_folder = './ADCN_ROI/'
-out_folder = 'H:/DtwData/dDTW_Ori_sqrt/per/'
+out_folder = './per/'
 
 def gaussian_kernel(size, sigma):
     """Generate a 1D Gaussian kernel"""
@@ -198,3 +198,4 @@ def multi_main():
 
 if __name__ == '__main__':
     multi_main()
+
