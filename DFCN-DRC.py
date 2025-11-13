@@ -32,7 +32,7 @@ from tqdm import tqdm
 import logging
 
 # Input and output folder paths
-in_folder = './ADCN_ROI/'
+in_folder = './input_folder/'
 out_folder = './per/'
 
 def gaussian_kernel(size, sigma):
@@ -197,6 +197,7 @@ def multi_main():
 
 if __name__ == '__main__':
     multi_main()
+
 
 
 
