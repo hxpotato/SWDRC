@@ -1,3 +1,19 @@
+#=====================================================================
+#IEEE Transactions on Medical Imaging (T-MI)
+#Alzheimer's Disease Diagnosis Based on Derivative Dynamic Time Warping Functional Connectivity Networks
+#=====================================================================
+#Framework: Dynamic Functional Connectivity Network Analysis
+#Methodology: Sliding Window based on Derivative Regularity Correlation (SWDRC) and Functional Delay Network (FDN)
+#Core Algorithm: Correlation-based on Derivative Regularity (CDR)
+#Modality: Resting-state functional Magnetic Resonance Imaging (rs-fMRI)
+#Author: Xin Hong, Yongze Lin,and Zhenghao Wu
+#Affiliation: Huaqiao University
+#Contact: xinhong@hqu.edu.cn
+#Version: v1.0.0
+#Code Repository: https://github.com/hxpotato/SWDRC
+#Copyright © 2025 IEEE
+#This code is intended exclusively for academic and research use.
+#====================================================================
 from scipy.stats import ttest_ind
 import pandas as pd
 import json
@@ -6,7 +22,7 @@ from scipy.stats import ttest_ind
 from scipy.stats import permutation_test
 import numpy as np
 warnings.filterwarnings("ignore", category=FutureWarning)
-output_file_path = 'H:/WindowStr/WinDtwPath/Path_cal/MST/network/'
+output_file_path = 
 def extract_all_metrics(data):
     all_metrics_df = pd.DataFrame()
     for col in data.columns[:-1]:  
