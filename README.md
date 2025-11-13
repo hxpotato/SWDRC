@@ -15,13 +15,6 @@ The study proposes three interconnected core techniques to address limitations o
 2. **SWDRC (Sliding Window based on Derivative Regularity Correlation)**: Uses CDR in a sliding window format to align signal dynamics, capturing subtle spatio-temporal changes in neural regulation.
 3. **FDN (Functional Delay Network)**: Measures relative transmission delays between brain regions, clarifying temporal patterns of signal propagation and quantifying interregional time offsets.
 
-<p align="center">
-  <img src="./assets/system_workflow.png" width="600" alt="System Workflow">
-</p>
-
-<div align="center">
-<b>The System Workflow</b> of CDR, SWDRC, and FDN construction
-</div>
 
 ### Core Algorithm: CDR
 The CDR algorithm proceeds through 6 key steps:
@@ -155,3 +148,4 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
