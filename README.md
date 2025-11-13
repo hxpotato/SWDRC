@@ -21,8 +21,7 @@ Constructing FDN: (h) The optimal path for each sub-window is recorded, and the 
    
 <p align="center">
   <img src="./figs/Fig2.TheSystemWorkflow.png" width="1000" alt="FCN Construction">
-    <figcaption>图片标题</figcaption>
-   <font size=6>  图片标题</font>
+    <figcaption>Algorithm Flowchart</figcaption>
 </p>
 
 
@@ -140,6 +139,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
