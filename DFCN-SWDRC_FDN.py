@@ -5,7 +5,6 @@
 #Framework: Dynamic Functional Connectivity Network Analysis
 #Methodology: Sliding Window based on Derivative Regularity Correlation (SWDRC) and Functional Delay Network (FDN)
 #Core Algorithm: Correlation-based on Derivative Regularity (CDR)
-#Dataset: ADNI (n=417 subjects), ABIDE (NYU & UM sites)
 #Modality: Resting-state functional Magnetic Resonance Imaging (rs-fMRI)
 #Author: Xin Hong, Yongze Lin,and Zhenghao Wu
 #Affiliation: Huaqiao University
@@ -739,6 +738,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
