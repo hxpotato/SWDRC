@@ -7,7 +7,9 @@ Official Repository of the paper: [Alzheimer’s Disease Diagnosis Based on Deri
 </p>
 
 <div align="center">
-<b>Schematic Diagram of FCN Construction</b> (a) Static FCN; (b) DFCN Based on CDR
+<b>Constructing CDR: (a) After preprocessing the rs-fMRI data, time series for each ROI are extracted using the AAL template and smoothed. A sliding window is then applied to segment the time series into subsequences, from which derivatives are computed; (b) The distance matrix within the subsequences is calculated; (c) The optimal path distance is computed based on the distance matrix; (d) Path backtracking is performed based on the optimal distance value to obtain the best sequence alignment.
+Constructing SWDRC: (e) The original sequence is reconstructed according to the alignment results; (f) The PCC of the reconstructed subsequences within each window is computed, and the mean PCC across all windows is used as the functional connectivity coefficient; (g) Functional connectivity coefficients for all ROI pairs are then calculated to build the functional connectivity network.
+Constructing FDN: (h) The optimal path for each sub-window is recorded, and the corresponding relative delay coefficients are estimated;(i) Delay coefficients for each pair of ROI are then aggregated to construct the FDN.
 </div>
 
 The study proposes three interconnected core techniques to address limitations of traditional functional connectivity analysis:
@@ -126,5 +128,6 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
