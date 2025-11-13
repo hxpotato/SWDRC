@@ -15,7 +15,7 @@ The study proposes three interconnected core techniques to address limitations o
   <img src="./figs/Fig2.TheSystemWorkflow.png" width="1000" alt="FCN Construction">
 </p>
 <div align="center">
-<b>Algorithm Flowchart</b>. The Workflow of the System : 
+<b>The Workflow of the System </b>.
 
 Constructing CDR: (a) After preprocessing the rs-fMRI data, time series for each ROI are extracted using the AAL template and smoothed. A sliding window is then applied to segment the time series into subsequences, from which derivatives are computed; (b) The distance matrix within the subsequences is calculated; (c) The optimal path distance is computed based on the distance matrix; (d) Path backtracking is performed based on the optimal distance value to obtain the best sequence alignment.
 
