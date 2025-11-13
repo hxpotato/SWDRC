@@ -67,7 +67,7 @@ Performed using MATLAB-based RESTplus toolkit:
 │   └── Extract Network Node Information and Perform Test.py # Extract Network Node Information and Perform Test
 ├── utils                     # Shared utilities
 │   ├── metrics.py            # Evaluation metrics (ACC, AUC, sensitivity, specificity)
-│   ├── visualization.py      # Result visualization tools
+│   ├── ExtractTR.py          # Extract TR values from NIfTI files
 │   └── tools.py              # General helper functions
 ├── main.py                   # Main entry point for running experiments
 └── requirements.txt          # Dependencies
@@ -137,6 +137,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
