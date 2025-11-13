@@ -19,7 +19,7 @@ The study proposes three interconnected core techniques to address limitations o
 
 This experiment utilizes BrainNet Viewer  to visualize the functional delay connections. In the network representation, edge thickness reflects the magnitude of delays within each group, with numeric labels denoting the absolute mean delay. Thicker edges correspond to longer delays between ROI. 
 </p>
-  <img src="./figs/Fig3.FDN-ADHC.png" width="1000" alt="connect">
+  <img src="./figs/Fig3.FDN-ADHC.png" width="800" alt="connect">
 </p>
 
 
@@ -136,6 +136,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
