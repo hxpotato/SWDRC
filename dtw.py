@@ -1,21 +1,21 @@
 #=====================================================================
 #IEEE Transactions on Medical Imaging (T-MI)
-#Unified Cardiac Structure and Pathology Segmentation Framework
-#Code Metadata and Implementation Details
+#Alzheimer's Disease Diagnosis Based on Derivative Dynamic Time Warping Functional Connectivity Networks
 #=====================================================================
-#Framework: Multi-domain Cardiac MRI Segmentation
-#Methodology: Deep Learning-based Unified Segmentation
-#Dataset: Multi-center Cardiac Imaging (n=1300+ patients)
-#Modality: Cardiac Magnetic Resonance Imaging (MRI)
-#Corresponding Author: potato Team
-#Affiliation: HuaQiao University
-#Contact: [email/contact information]
+#Framework: Dynamic Functional Connectivity Network Analysis
+#Methodology: Sliding Window based on Derivative Regularity Correlation (SWDRC) and Functional Delay Network (FDN)
+#Core Algorithm: Correlation-based on Derivative Regularity (CDR)
+#Dataset: ADNI (n=417 subjects), ABIDE (NYU & UM sites)
+#Modality: Resting-state functional Magnetic Resonance Imaging (rs-fMRI)
+#Author: Xin Hong, Yongze Lin,and Zhenghao Wu
+#Affiliation: Huaqiao University
+#Contact: xinhong@hqu.edu.cn
 #Version: v1.0.0
-#Code Repository: [URL to code repository]
+#Code Repository: https://github.com/hxpotato/SWDRC
 #Copyright © 2025 IEEE
 #This work is licensed under the MIT License (see LICENSE for details)
 #This code is intended exclusively for academic and research use.
-#=====================================================================
+#====================================================================
 
 # -*- coding: utf-8 -*-
 import os
@@ -69,4 +69,5 @@ if __name__ == "__main__":
     # Parallel distribution: each process handles one file
     with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
         executor.map(process_file, files)
+
 
