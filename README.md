@@ -60,7 +60,7 @@ Performed using MATLAB-based RESTplus toolkit:
 │   ├── cdr.py                # CDR algorithm implementation
 │   ├── swdrc.py              # SWDRC network construction
 │   ├── fdn.py                # FDN network construction
-│   └── utils.py              # Model utility functions
+│   └── dtw.py                # Dynamic Time Warping
 ├── experiments               # Experiment scripts
 │   ├── classification.py     # Classification task implementation
 │   ├── network_analysis.py   # Network property analysis
@@ -138,6 +138,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
