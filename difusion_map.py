@@ -13,7 +13,6 @@
 #Version: v1.0.0
 #Code Repository: https://github.com/hxpotato/SWDRC
 #Copyright © 2025 IEEE
-#This work is licensed under the MIT License (see LICENSE for details)
 #This code is intended exclusively for academic and research use.
 #====================================================================
 import numpy as np
