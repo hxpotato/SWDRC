@@ -64,7 +64,7 @@ Performed using MATLAB-based RESTplus toolkit:
 ├── experiments               # Experiment scripts
 │   ├── classification.py     # Classification task implementation
 │   ├── network_analysis.py   # Network property analysis
-│   └── hyperparameter_search.py # Grid search for optimal parameters
+│   └── Extract Network Node Information and Perform Test.py # Extract Network Node Information and Perform Test
 ├── utils                     # Shared utilities
 │   ├── metrics.py            # Evaluation metrics (ACC, AUC, sensitivity, specificity)
 │   ├── visualization.py      # Result visualization tools
@@ -137,6 +137,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
