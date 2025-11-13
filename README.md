@@ -64,6 +64,7 @@ Performed using MATLAB-based RESTplus toolkit:
 ├── experiments               # Experiment scripts
 │   ├── classification.py     # Classification task implementation
 │   ├── network_analysis.py   # Network property analysis
+│   ├── difusion_map.py       # Using SPD matrices based on sparse inverse covariance estimation to represent different sample information
 │   └── Extract Network Node Information and Perform Test.py # Extract Network Node Information and Perform Test
 ├── utils                     # Shared utilities
 │   ├── metrics.py            # Evaluation metrics (ACC, AUC, sensitivity, specificity)
@@ -137,6 +138,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
