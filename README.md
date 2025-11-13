@@ -29,8 +29,9 @@ Steps:
 1. Calculate derivative transformation of time series
 2. Compute distance matrix based on derivative sequences
 3. Calculate path using dynamic time warping
-4. Perform path backtracking and sequence alignment reconstruction
-5. Compute Pearson correlation coefficient of reconstructed sequences
+4. Perform path backtracking
+5. sequence alignment reconstruction
+6. Compute Pearson correlation coefficient of reconstructed sequences
 
 
 DFCN-SWDRC Construction Algorithm
@@ -275,3 +276,4 @@ For questions or suggestions, please contact:
 • GitHub Issues: https://github.com/your-repo/dfcn-swdrc
 
 Note: This README is compiled based on the content of the original paper. For specific implementation details, please refer to the source code and the original paper.
+
