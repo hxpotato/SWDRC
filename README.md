@@ -52,11 +52,11 @@ Performed using MATLAB-based RESTplus toolkit:
 ```
 .
 ├── configs                   # Experiment configuration files
-├── data                      # Dataset storage and preprocessing scripts
+├── data                      # Dataset storage and preprocessing scripts(Display after employment)
 │   ├── adni_preprocess.py    # ADNI dataset preprocessing
 │   ├── abide_preprocess.py   # ABIDE dataset preprocessing
 │   └── utils.py              # Data utility functions
-├── models                    # Model definitions
+├── models                    # Model definitions(Display after employment)
 │   ├── cdr.py                # CDR algorithm implementation
 │   ├── swdrc.py              # SWDRC network construction
 │   ├── fdn.py                # FDN network construction
@@ -69,7 +69,7 @@ Performed using MATLAB-based RESTplus toolkit:
 │   ├── metrics.py            # Evaluation metrics (ACC, AUC, sensitivity, specificity)
 │   ├── ExtractTR.py          # Extract TR values from NIfTI files
 │   └── tools.py              # General helper functions
-├── main.py                   # Main entry point for running experiments
+├── main.py                   # Main entry point for running experiments(Display after employment)
 └── requirements.txt          # Dependencies
 ```
 
@@ -137,6 +137,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
