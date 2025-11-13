@@ -7,7 +7,7 @@
 # Methodology: Deep Learning-based Unified Segmentation
 # Dataset: Multi-center Cardiac Imaging (n=1300+ patients)
 # Modality: Cardiac Magnetic Resonance Imaging (MRI)
-# Corresponding Author: Xin Hong, Yongze Lin,and Zhenghao Wu
+# Author: Xin Hong, Yongze Lin,and Zhenghao Wu
 # Affiliation: HuaQiao University
 # Contact: [email/contact information]
 # Version: v1.0.0
@@ -198,4 +198,5 @@ def multi_main():
 
 if __name__ == '__main__':
     multi_main()
+
 
