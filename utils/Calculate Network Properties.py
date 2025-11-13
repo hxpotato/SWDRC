@@ -1,9 +1,25 @@
+#=====================================================================
+#IEEE Transactions on Medical Imaging (T-MI)
+#Alzheimer's Disease Diagnosis Based on Derivative Dynamic Time Warping Functional Connectivity Networks
+#=====================================================================
+#Framework: Dynamic Functional Connectivity Network Analysis
+#Methodology: Sliding Window based on Derivative Regularity Correlation (SWDRC) and Functional Delay Network (FDN)
+#Core Algorithm: Correlation-based on Derivative Regularity (CDR)
+#Modality: Resting-state functional Magnetic Resonance Imaging (rs-fMRI)
+#Author: Xin Hong, Yongze Lin,and Zhenghao Wu
+#Affiliation: Huaqiao University
+#Contact: xinhong@hqu.edu.cn
+#Version: v1.0.0
+#Code Repository: https://github.com/hxpotato/SWDRC
+#Copyright © 2025 IEEE
+#This code is intended exclusively for academic and research use.
+#====================================================================
 import networkx as nx
 import pandas as pd
 import numpy as np
 import os
-path_folder = "H:/WindowStr/WinDtwPath/Path_cal/P005/20_8/"
-nwork_save_folder = "H:/WindowStr/WinDtwPath/Path_cal/P005/20_8_network/"
+path_folder = ""
+nwork_save_folder = "
 def create_network_from_matrix(matrix,matrix_size):
     G_directed = nx.DiGraph()
     G_undirected = nx.Graph()
@@ -121,7 +137,7 @@ def main():
     for w in window_size:
         for s in stride:
             now_path_folder = path_folder + f"{w}_{s}/"
-            print("正在读取文件夹"+now_path_folder)
+            print("reading"+now_path_folder)
             CN_mats,CN_files_name = load_mats(now_path_folder,'CN',delimiter=' ')
             AD_mats,AD_files_name = load_mats(now_path_folder,'AD',delimiter=' ')
             CN_network_directed = []
@@ -155,7 +171,7 @@ def main():
 def main2():
     mat_size = 90
     now_path_folder = path_folder
-    print("正在读取文件夹" + now_path_folder)
+    print("reading" + now_path_folder)
     CN_mats, CN_files_name = load_mats(now_path_folder, 'CN', delimiter=' ')
     AD_mats, AD_files_name = load_mats(now_path_folder, 'AD', delimiter=' ')
     CN_network_directed = []
