@@ -57,7 +57,7 @@ Performed using MATLAB-based RESTplus toolkit:
 │   ├── abide_preprocess.py   # ABIDE dataset preprocessing
 │   └── utils.py              # Data utility functions
 ├── models                    # Model definitions(Display after employment)
-│   ├── drc.py                # CDR algorithm implementation
+│   ├── cdr.py                # CDR algorithm implementation
 │   ├── swdrc.py              # SWDRC network construction
 │   ├── fdn.py                # FDN network construction
 │   └── dtw.py                # Dynamic Time Warping
@@ -138,6 +138,7 @@ If you find this repository useful in your research, please consider giving a st
   publisher={IEEE}
 }
 ```
+
 
 
 
