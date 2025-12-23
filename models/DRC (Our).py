@@ -24,8 +24,8 @@ from scipy.signal import convolve
 # Importing numpy and os again is redundant; consider removing the duplicates.
 
 # Define input and output folder paths
-in_folder = './ADCN_ROI/'
-out_folder = 'H:/DtwData/dDTW_Ori_sqrt_new/WDO_per1111/'
+in_folder = 
+out_folder = 
 
 # Define window sizes to be used in sliding window DTW
 window_size = [i for i in range(10, 55, 5)]
@@ -274,4 +274,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
