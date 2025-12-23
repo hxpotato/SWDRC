@@ -16,275 +16,262 @@
 #====================================================================
 
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Jul  6 17:25:00 2022
-
-@author: 86178
-"""
-import torch
 import numpy as np
-import torch.nn as nn
-from einops import rearrange, repeat   
-import torch.nn.functional as F
+import os
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+from scipy.signal import convolve
+# Importing numpy and os again is redundant; consider removing the duplicates.
 
+# Define input and output folder paths
+in_folder = './ADCN_ROI/'
+out_folder = 'H:/DtwData/dDTW_Ori_sqrt_new/WDO_per1111/'
 
-class LayerGIN(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, epsilon=True):
-        super().__init__()
-        if epsilon: self.epsilon = nn.Parameter(torch.Tensor([[0.0]])) # assumes that the adjacency matrix includes self-loop
-        else: self.epsilon = 0.0
-        self.mlp = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.BatchNorm1d(hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, output_dim), nn.BatchNorm1d(output_dim), nn.ReLU())
+# Define window sizes to be used in sliding window DTW
+window_size = [i for i in range(10, 55, 5)]
+# The original square has been completed; now compute results under square root
+stride = [i for i in range(1, 11)]
+# stride = [i for i in range(1, 5)] # Completed
+# stride = [i for i in range(5, 9)] # Completed
+# stride = [i for i in range(9, 11)] # Completed
 
+def gaussian_kernel(size, sigma):
+    """Generate a Gaussian kernel of given size and standard deviation (sigma)."""
+    return np.exp(-(np.arange(size) - size // 2) ** 2 / (2 * sigma ** 2)) / (np.sqrt(2 * np.pi) * sigma)
 
-    def forward(self, v, a):
-        v_aggregate = torch.sparse.mm(a, v) 
-        v_aggregate += self.epsilon * v # assumes that the adjacency matrix includes self-loop
-        v_combine = self.mlp(v_aggregate)
-        return v_combine
+def gaussian_smooth(data, kernel_size, sigma):
+    """Apply Gaussian smoothing to data using the specified kernel size and sigma."""
+    kernel = gaussian_kernel(kernel_size, sigma)
+    kernel /= np.sum(kernel)  # Normalize the kernel
+    # Create mirrored boundaries
+    extended_data = np.pad(data, pad_width=kernel_size//2, mode='reflect')
+    smoothed_data = convolve(extended_data, kernel, mode='valid')
+    return smoothed_data
 
+def load_one_file(file_path):
+    """Load matrix from file and transpose it."""
+    matrix = np.loadtxt(file_path)
+    transposed_matrix = np.transpose(matrix)
+    return transposed_matrix
 
-class ModuleMeanReadout(nn.Module):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
+def compute_derivative(series):
+    """Compute the first derivative of the series with boundary handling."""
+    Dq = np.zeros_like(series)
+    for i in range(1, len(series) - 1):
+        Dq[i] = (series[i] - series[i - 1] + (series[i + 1] - series[i - 1]) / 2) / 2
+    Dq[0] = Dq[1]  # Boundary handling
+    Dq[-1] = Dq[-2]  # Boundary handling
+    return Dq
 
-    def forward(self, x, node_axis=1):
-        return x.mean(node_axis), torch.zeros(size=[1,1,1], dtype=torch.float32) 
+def cal_dis_mat(row1, row2, cols):
+    """Calculate distance matrix between two rows based on their derivatives."""
+    A_deriv = compute_derivative(row1)
+    B_deriv = compute_derivative(row2)
+    dis = np.zeros((cols, cols))
+    for li in range(0, cols):
+        for lj in range(0, cols):
+            # Calculate distance matrix between derivatives
+            dis[li, lj] = np.sqrt((A_deriv[li] - B_deriv[lj]) ** 2)
+    return dis
 
+def dtw_from_distance_matrix(dis_mat):
+    """Compute DTW matrix from the distance matrix."""
+    n, m = dis_mat.shape
+    dtw_matrix = np.zeros((n+1, m+1))
+    for i in range(n+1):
+        for j in range(m+1):
+            dtw_matrix[i, j] = np.inf
+    dtw_matrix[0, 0] = 0
+    # Note that where i=0 or j=0 are set to infinity, so when (u=1, v>1) or (u>1, v=1), they won't transfer from u=0 or v=0
+    for i in range(1, n+1):
+        for j in range(1, m+1):
+            cost = dis_mat[i-1, j-1]
+            dtw_matrix[i, j] = cost + min(dtw_matrix[i-1, j], dtw_matrix[i, j-1], dtw_matrix[i-1, j-1])
+    return dtw_matrix
 
-class ModuleSERO(nn.Module):
-    def __init__(self, hidden_dim, input_dim, dropout=0.1, upscale=1.0):
-        super().__init__()
-        self.embed = nn.Sequential(nn.Linear(hidden_dim, round(upscale*hidden_dim)), nn.BatchNorm1d(round(upscale*hidden_dim)), nn.GELU()) 
-        self.attend = nn.Linear(round(upscale*hidden_dim), input_dim) 
-        self.dropout = nn.Dropout(dropout) 
-
-
-    def forward(self, x, node_axis=1):
-        # assumes shape [... x node x ... x feature]
-        x_readout = x.mean(node_axis)
-        x_shape = x_readout.shape
-        x_embed = self.embed(x_readout.reshape(-1,x_shape[-1])) 
-        x_graphattention = torch.sigmoid(self.attend(x_embed)).view(*x_shape[:-1],-1) 
-        permute_idx = list(range(node_axis))+[len(x_graphattention.shape)-1]+list(range(node_axis,len(x_graphattention.shape)-1))
-        x_graphattention = x_graphattention.permute(permute_idx) 
-        return (x * self.dropout(x_graphattention.unsqueeze(-1))).mean(node_axis), x_graphattention.permute(1,0,2)
-
-
-
-class ModuleTransformer(nn.Module):
-    def __init__(self, input_dim, hidden_dim, num_heads, dropout=0.1):
-        super().__init__()
-        self.multihead_attn = nn.MultiheadAttention(input_dim, num_heads) 
-        self.layer_norm1 = nn.LayerNorm(input_dim)
-        self.layer_norm2 = nn.LayerNorm(input_dim)
-        self.dropout1 = nn.Dropout(dropout)
-        self.dropout2 = nn.Dropout(dropout)
-        self.mlp = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.ReLU(), nn.Dropout(dropout), nn.Linear(hidden_dim, input_dim))
-
-
-    def forward(self, x):
-        x_attend, attn_matrix = self.multihead_attn(x, x, x)
-        x_attend = self.dropout1(x_attend) # no skip connection
-        x_attend = self.layer_norm1(x_attend)
-        x_attend2 = self.mlp(x_attend)
-        x_attend = x_attend + self.dropout2(x_attend2)
-        x_attend = self.layer_norm2(x_attend)
-        return x_attend, attn_matrix
-
-#### Dynamic Graph Learning(AAL Spatial Scale)
-class MDGLAAL(nn.Module):
-    def __init__(self, input_dim, hidden_dim, num_classes, num_heads, num_layers, sparsity, cls_token='sum', readout='sero', garo_upscale=1.0):
-        super().__init__()
-        assert cls_token in ['sum', 'mean', 'param']
-        if cls_token=='sum': self.cls_token = lambda x: x.sum(0) 
-        elif cls_token=='mean': self.cls_token = lambda x: x.mean(0)
-        elif cls_token=='param': self.cls_token = lambda x: x[-1]
-        else: raise
-        if readout=='sero': readout_module = ModuleSERO
-        elif readout=='mean': readout_module = ModuleMeanReadout
-        else: raise
-
-        self.token_parameter = nn.Parameter(torch.randn([num_layers, 1, 1, hidden_dim])) if cls_token=='param' else None 
-        self.num_classes = num_classes
-        self.sparsity = sparsity
-
-        # define modules
-        self.initial_linear = nn.Linear(input_dim, hidden_dim)
-        self.gnn_layers = nn.ModuleList()
-        self.readout_modules = nn.ModuleList()
-        self.transformer_modules = nn.ModuleList()
-        self.linear_layers = nn.ModuleList()
-   
-
-        for i in range(num_layers):
-            self.gnn_layers.append(LayerGIN(hidden_dim, hidden_dim, hidden_dim))
-            self.readout_modules.append(readout_module(hidden_dim=hidden_dim, input_dim=input_dim, dropout=0.1))
-            self.transformer_modules.append(ModuleTransformer(hidden_dim, 2*hidden_dim, num_heads=num_heads, dropout=0.1))
-            self.linear_layers.append(nn.Linear(hidden_dim, num_classes))
-
-
-    def _collate_adjacency(self, a, sparse=True):
-        i_list = []
-        v_list = []
-        for sample, _dyn_a in enumerate(a):
-            for timepoint, _a in enumerate(_dyn_a):
-                thresholded_a = (_a > np.percentile(_a.detach().cpu().numpy(), 100-self.sparsity))
-                _i = thresholded_a.nonzero(as_tuple=False)
-                _v = torch.ones(len(_i))
-                _i += sample * a.shape[1] * a.shape[2] + timepoint * a.shape[2]
-                i_list.append(_i)
-                v_list.append(_v)
-        _i = torch.cat(i_list).T.to(a.device)
-        _v = torch.cat(v_list).to(a.device)
-
-        return torch.sparse.FloatTensor(_i, _v, (a.shape[0]*a.shape[1]*a.shape[2], a.shape[0]*a.shape[1]*a.shape[3]))
-
-
-    def forward(self, v1, a1, t1, sampling_endpoints1):
-        # assumes shape [minibatch x time x node x feature] for v
-        # assumes shape [minibatch x time x node x node] for a
-        reg_ortho1 = 0.0
-        latent_list = []
-        minibatch_size, num_timepoints, num_nodes = a1.shape[:3]
-       
-        h = v1
-        h = rearrange(h, 'b t n c -> (b t n) c')
-        h = self.initial_linear(h)
-        a1 = self._collate_adjacency(a1)
-        
-        for layer, (G, R, T, L) in enumerate(zip(self.gnn_layers, self.readout_modules, self.transformer_modules, self.linear_layers)):
-            h = G(h, a1)
-            h_bridge = rearrange(h, '(b t n) c -> t b n c', t=num_timepoints, b=minibatch_size, n=num_nodes)
-            h_readout, node_attn = R(h_bridge, node_axis=2)
-            if self.token_parameter is not None: h_readout = torch.cat([h_readout, self.token_parameter[layer].expand(-1,h_readout.shape[1],-1)])
-            h_attend, time_attn = T(h_readout)
-            ortho_latent = rearrange(h_bridge, 't b n c -> (t b) n c') 
-            matrix_inner = torch.bmm(ortho_latent, ortho_latent.permute(0,2,1)) 
-            reg_ortho1 += (matrix_inner/matrix_inner.max(-1)[0].unsqueeze(-1) - torch.eye(num_nodes, device=matrix_inner.device)).triu().norm(dim=(1,2)).mean() #eye生成对角线全1，其余部分全0的二维数组
-                                                                                                              
-            latent1 = self.cls_token(h_attend)
-            latent_list.append(latent1)
-
-        latent1 = torch.stack(latent_list, dim=1)
-        latent1 = latent1.flatten(start_dim=1,end_dim=2) 
-
-        
-        return latent1,reg_ortho1
-
-#### Dynamic Graph Learning(CC200 Spatial Scale)
-class MDGLCC200(nn.Module):
-    def __init__(self, input_dim, hidden_dim, num_classes, num_heads, num_layers, sparsity,
-                 cls_token='sum', readout='sero', garo_upscale=1.0):
-        super().__init__()
-        assert cls_token in ['sum', 'mean', 'param']
-        if cls_token == 'sum':
-            self.cls_token = lambda x: x.sum(0)  
-        elif cls_token == 'mean':
-            self.cls_token = lambda x: x.mean(0)
-        elif cls_token == 'param':
-            self.cls_token = lambda x: x[-1]
+def backtrack_dtw(dtw_matrix):
+    """Find the path minimizing total distance between two sequences."""
+    i, j = dtw_matrix.shape[0] - 1, dtw_matrix.shape[1] - 1
+    path = [(i-1, j-1)]
+    while i > 1 or j > 1:
+        # When i == 1, only move j // When j == 1, only move i
+        if i == 1:
+            j -= 1
+        elif j == 1:
+            i -= 1
+        # When both i > 1 and j > 1, choose the minimum value among three possible moves
         else:
-            raise
-        if readout == 'sero':
-            readout_module = ModuleSERO
-        elif readout == 'mean':
-            readout_module = ModuleMeanReadout
-        else:
-            raise
+            if dtw_matrix[i-1, j] == min(dtw_matrix[i-1, j-1], dtw_matrix[i-1, j], dtw_matrix[i, j-1]):
+                i -= 1
+            elif dtw_matrix[i, j-1] == min(dtw_matrix[i-1, j-1], dtw_matrix[i-1, j], dtw_matrix[i, j-1]):
+                j -= 1
+            else:
+                i -= 1
+                j -= 1
+        path.append((i-1, j-1))
+    path.reverse()
+    return path
 
-        self.token_parameter = nn.Parameter(torch.randn([num_layers, 1, 1, hidden_dim])) if cls_token == 'param' else None  
-        self.num_classes = num_classes
-        self.sparsity = sparsity
+def sliding_window_DTW(seq1, seq2, window_size=10, stride=1):
+    """
+    Compute DTW within a sliding window for two sequences and return aligned sequences for each window.
 
-        # define modules
-        self.initial_linear = nn.Linear(input_dim, hidden_dim)
-        self.gnn_layers = nn.ModuleList()
-        self.readout_modules = nn.ModuleList()
-        self.transformer_modules = nn.ModuleList()
-        self.linear_layers = nn.ModuleList()
-        
+    Parameters:
+    :param seq1: First sequence.
+    :param seq2: Second sequence.
+    :param window_size: Size of the sliding window.
+    :param stride: Number of positions to slide the window at each step.
+    :param path_cal: Record matching count of warping paths.
 
-        for i in range(num_layers):
-            self.gnn_layers.append(LayerGIN(hidden_dim, hidden_dim, hidden_dim))
-            self.readout_modules.append(readout_module(hidden_dim=hidden_dim, input_dim=input_dim, dropout=0.1))
-            self.transformer_modules.append(
-                ModuleTransformer(hidden_dim, 2 * hidden_dim, num_heads=num_heads, dropout=0.1))
-            self.linear_layers.append(nn.Linear(hidden_dim, num_classes))
+    Returns:
+    :return: A list of tuples containing aligned sequences for each window.
+    """
+    all_aligned_pairs = []
+    # If storing sequence alignment paths, uncomment below
+    # paths = []
+    # Initialize warping path calculation matrix
+    path_cal = np.zeros((len(seq1)+5, len(seq2)+5))
 
-    def _collate_adjacency(self, a, sparse=True):
-        i_list = []
-        v_list = []
-        for sample, _dyn_a in enumerate(a):
-            for timepoint, _a in enumerate(_dyn_a):
-                thresholded_a = (_a > np.percentile(_a.detach().cpu().numpy(), 100 - self.sparsity))
-                _i = thresholded_a.nonzero(as_tuple=False)
-                _v = torch.ones(len(_i))
-                _i += sample * a.shape[1] * a.shape[2] + timepoint * a.shape[2]
-                i_list.append(_i)
-                v_list.append(_v)
-        _i = torch.cat(i_list).T.to(a.device)
-        _v = torch.cat(v_list).to(a.device)
+    for start in range(0, len(seq1) - window_size + 1, stride):
+        end = start + window_size
 
-        return torch.sparse.FloatTensor(_i, _v,
-                                        (a.shape[0] * a.shape[1] * a.shape[2], a.shape[0] * a.shape[1] * a.shape[3]))
+        normalized_seq1 = seq1[start:end]
+        normalized_seq2 = seq2[start:end]
 
-    def forward(self, v2, a2, t2, sampling_endpoints2):
-        # assumes shape [minibatch x time x node x feature] for v
-        # assumes shape [minibatch x time x node x node] for a
-        reg_ortho2 = 0.0
-        latent_list = []
-        minibatch_size, num_timepoints, num_nodes = a2.shape[:3]
-     
-        h = v2
-        h = rearrange(h, 'b t n c -> (b t n) c')
-        h = self.initial_linear(h)
-        a2 = self._collate_adjacency(a2)
-     
-        for layer, (G, R, T, L) in enumerate(zip(self.gnn_layers, self.readout_modules, self.transformer_modules, self.linear_layers)):
-            
-            h = G(h, a2)
-            h_bridge = rearrange(h, '(b t n) c -> t b n c', t=num_timepoints, b=minibatch_size, n=num_nodes)
-            h_readout, node_attn = R(h_bridge, node_axis=2)
-            if self.token_parameter is not None: h_readout = torch.cat([h_readout, self.token_parameter[layer].expand(-1, h_readout.shape[1], -1)])
-            h_attend, time_attn = T(h_readout)
-            ortho_latent = rearrange(h_bridge, 't b n c -> (t b) n c')  
-            matrix_inner = torch.bmm(ortho_latent, ortho_latent.permute(0, 2, 1))  
-            reg_ortho2 += (matrix_inner / matrix_inner.max(-1)[0].unsqueeze(-1) - torch.eye(num_nodes,device=matrix_inner.device)).triu().norm(dim=(1, 2)).mean()  # eye生成对角线全1，其余部分全0的二维数组
-                                                                                                               
-            latent1 = self.cls_token(h_attend)
-            latent_list.append(latent1)
+        dis_mat = cal_dis_mat(normalized_seq1, normalized_seq2, end - start)
+        dtw_matrix = dtw_from_distance_matrix(dis_mat)
+        path = backtrack_dtw(dtw_matrix)
 
-        latent1 = torch.stack(latent_list, dim=1)
-        latent1 = latent1.flatten(start_dim=1,end_dim=2)
+        for (i, j) in path:
+            path_cal[i, j] += 1
+        # paths.append(path)
+        aligned_a, aligned_b = warp_sequences(normalized_seq1, normalized_seq2, path)
+        all_aligned_pairs.append((aligned_a, aligned_b))
 
-       
-        return latent1,reg_ortho2
-    
+    # return all_aligned_pairs, paths
+    return all_aligned_pairs, path_cal
 
-#### Multi-scale Fusion and Classification
-class Fusion(nn.Module):
-    def __init__(self, input_dim1,input_dim2, hidden_dim, num_classes, num_heads, num_layers, sparsity, dropout=0.5,
-                 cls_token='sum', readout='sero', garo_upscale=1.0):
-        super(Fusion, self).__init__()
-        
-        self.out1 = MDGLAAL(input_dim1, hidden_dim, num_classes, num_heads, num_layers, sparsity, 
-                 cls_token='sum', readout='sero', garo_upscale=1.0)
-        self.out2 = MDGLCC200(input_dim2, hidden_dim, num_classes, num_heads, num_layers, sparsity, 
-                 cls_token='sum', readout='sero', garo_upscale=1.0)
-    
-        self.fc2 = nn.Linear(256, 2)
-        self.dropout = nn.Dropout(dropout)
-        
-    def forward(self, v1, a1, t1, sampling_endpoints1,v2, a2, t2, sampling_endpoints2):
-        
-        out1,reg_ortho1 = self.out1(v1, a1, t1, sampling_endpoints1)
-        out2,reg_ortho2 = self.out2(v2, a2, t2, sampling_endpoints2)
-        x1 = torch.cat((out1, out2), dim=1)
-        logits = self.dropout(self.fc2(x1))
-        
-        
-        return logits,reg_ortho1,reg_ortho2
-    
-def count_parameters(model):
+def cal_window_D(ormat, n, window_size, stride, path_cal_save_folder, patient_id):
+    '''
+    Calculate Pearson correlation coefficients before and after warping between signals in the raw signal matrix.
+    :param ormat: Original signal matrix
+    :param n: Number of signals
+    '''
+    # Gaussian smoothing
+    kernel_size = 9
+    # kernel_size = 5
+    # kernel_size needs to be odd, sigma is standard deviation
+    sigma = 2
+    for i in range(n):
+        data = ormat[i]
+        smoothed_data = gaussian_smooth(data, kernel_size, sigma)
+        ormat[i] = smoothed_data
+    # Perform normalization on the entire sequence first
 
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+    retp = np.zeros((n, n))
+    # path_cal matrix records matching counts of warping paths
+    ALL_ROI_path_cal = np.zeros((n, n))
+    # !!! Note, need to record inside because calculations are done between different ROIs
+    # Calculate warping path matrix D
+    # For row i and row j
+    for ri in range(0, n):
+        for rj in range(0, n):
+            if ri == rj:
+                retp[ri][rj] = 1
+                continue
+            if ri > rj:
+                continue
+            else:
+                # Pass full length sequences
+                aligned_pairs, t_path_cal = sliding_window_DTW(ormat[ri], ormat[rj], window_size, stride)
+                # Calculate Pearson correlation coefficients based on all aligned sequences
+                local_pearsons = [pearson_correlation(pair[0], pair[1]) for pair in aligned_pairs]
+                # Compute and save average Pearson correlation coefficient
+                retp[ri][rj] = np.mean(local_pearsons)
+                retp[rj][ri] = retp[ri][rj]
+
+                # Calculate matching counts of warping paths
+                path_cal_sum = np.sum(t_path_cal)
+                # Sum corresponding rows and columns
+                ri_cal = 0.0
+                rj_cal = 0.0
+                sqe_len = len(ormat[ri])
+                # Note: path is (0,0),(0,1),(1,2)...(n,n)
+                for tmp_i in range(sqe_len+3):
+                    for tmp_j in range(sqe_len+3):
+                        ri_cal = ri_cal + (tmp_i * t_path_cal[tmp_i][tmp_j])
+                        rj_cal = rj_cal + (tmp_j * t_path_cal[tmp_i][tmp_j])
+
+                # Calculate mean difference
+                path_val = (ri_cal - rj_cal) / (path_cal_sum)
+                ALL_ROI_path_cal[ri][rj] = path_val
+                ALL_ROI_path_cal[rj][ri] = -path_val
+
+                # path_output_path = os.path.join(path_cal_save_folder, patient_id+'_'+str(ri)+'_'+str(rj)+'.txt')
+                # save_mat_to_txt(path_cal, path_output_path)
+                # Do not store, calculate path directly
+
+    return retp, ALL_ROI_path_cal
+
+def warp_sequences(seq_a, seq_b, path):
+    '''
+    seq_a, seq_b: Two original sequences
+    path: Warping path between the two sequences
+    path：(1,1),(1,2),(2,3)...(n,n)
+    Restore warped sequences
+    '''
+    aligned_a = []
+    aligned_b = []
+
+    for (i, j) in path:
+        aligned_a.append(seq_a[i])  # Subtract 1 because path is based on dtw_matrix which is larger by 1 than seq_a and seq_b
+        aligned_b.append(seq_b[j])
+    return aligned_a, aligned_b
+
+def pearson_correlation(seq1, seq2):
+    """Calculate Pearson correlation coefficient between two sequences."""
+    if(np.std(seq1)==0 or np.std(seq1)==0):
+        print("0000！")
+    return np.corrcoef(seq1, seq2)[0, 1]
+
+def save_mat_to_txt(matrix, output_path):
+    """Save matrix to text file."""
+    np.savetxt(output_path, matrix, delimiter=' ')
+
+def process_one_file(filename, window_size, stride, in_folder, out_folder):
+    # Define input and output file paths, read matrix (already transposed)
+    in_file_path = os.path.join(in_folder, filename)
+    outp_file_path = os.path.join(out_folder, filename)
+    matrix = load_one_file(in_file_path)
+
+    path_cal_save_folder = out_folder + 'path_cal/'
+    if not os.path.exists(path_cal_save_folder):
+        os.makedirs(path_cal_save_folder)
+
+    patient_id = filename.replace('ROISignal_', '')
+    patient_id = patient_id.replace('_CN.txt', '')
+    patient_id = patient_id.replace('_AD.txt', '')
+
+    # Calculate and save warped Pearson correlation coefficient matrix
+    retp, path_cal = cal_window_D(matrix, 90, window_size, stride, path_cal_save_folder, patient_id)
+    save_mat_to_txt(retp, outp_file_path)
+    path_output_path = os.path.join(out_folder, filename + '_path_cal.txt')
+    save_mat_to_txt(path_cal, path_output_path)
+
+def main():
+    # Iterate over all files in the directory
+    for filename in os.listdir(in_folder):
+        if filename.endswith(".txt"):
+            for ws in window_size:
+                for st in stride:
+                    # Iterate over window sizes and strides
+                    now_WDO_folder = os.path.join(out_folder, f"{ws}_{st}")
+                    if not os.path.exists(now_WDO_folder):
+                        os.makedirs(now_WDO_folder)
+                    # Directly call processing function
+                    process_one_file(filename, ws, st, in_folder, now_WDO_folder)
+                    print(f"Processing file {filename} complete!")
+
+if __name__ == '__main__':
+    main()
+
