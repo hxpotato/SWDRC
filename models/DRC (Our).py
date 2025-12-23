@@ -1,278 +1,459 @@
-#=====================================================================
-#IEEE Transactions on Medical Imaging (T-MI)
-#Alzheimer's Disease Diagnosis Based on Derivative Dynamic Time Warping Functional Connectivity Networks
-#=====================================================================
-#Framework: Dynamic Functional Connectivity Network Analysis
-#Methodology: Sliding Window based on Derivative Regularity Correlation (SWDRC) and Functional Delay Network (FDN)
-#Core Algorithm: Correlation-based on Derivative Regularity (CDR)
-#Modality: Resting-state functional Magnetic Resonance Imaging (rs-fMRI)
-#Author: Xin Hong, Yongze Lin,and Zhenghao Wu
-#Affiliation: Huaqiao University
-#Contact: xinhong@hqu.edu.cn
-#Version: v1.0.0
-#Code Repository: https://github.com/hxpotato/SWDRC
-#Copyright © 2025 IEEE
-#This code is intended exclusively for academic and research use.
-#====================================================================
-
-# -*- coding: utf-8 -*-
 import numpy as np
 import os
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from scipy.signal import convolve
-# Importing numpy and os again is redundant; consider removing the duplicates.
+import multiprocessing
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import logging
+from typing import List, Tuple, Optional
 
-# Define input and output folder paths
-in_folder = 
-out_folder = 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('dtw_processing.log'),
+        logging.StreamHandler()
+    ]
+)
 
-# Define window sizes to be used in sliding window DTW
-window_size = [i for i in range(10, 55, 5)]
-# The original square has been completed; now compute results under square root
-stride = [i for i in range(1, 11)]
-# stride = [i for i in range(1, 5)] # Completed
-# stride = [i for i in range(5, 9)] # Completed
-# stride = [i for i in range(9, 11)] # Completed
+# Input folder containing AD/CN ROI signal files
+INPUT_FOLDER = './ADCN_ROI/'
+# Output folder for DTW results with square root transformation
+OUTPUT_FOLDER = 'H:/DtwData/dDTW_Ori_sqrt/per/'
 
-def gaussian_kernel(size, sigma):
-    """Generate a Gaussian kernel of given size and standard deviation (sigma)."""
+# Gaussian smoothing parameters
+GAUSSIAN_KERNEL_SIZE = 9  # Must be odd number
+GAUSSIAN_SIGMA = 2        # Standard deviation for Gaussian kernel
+
+# Number of sequences (ROIs) per file
+NUM_SEQUENCES = 90
+
+def gaussian_kernel(size: int, sigma: float) -> np.ndarray:
+    """
+    Generate 1D Gaussian kernel for signal smoothing.
+    
+    Args:
+        size: Kernel window size (should be odd)
+        sigma: Standard deviation of the Gaussian distribution
+        
+    Returns:
+        1D numpy array containing Gaussian kernel values
+    """
     return np.exp(-(np.arange(size) - size // 2) ** 2 / (2 * sigma ** 2)) / (np.sqrt(2 * np.pi) * sigma)
 
-def gaussian_smooth(data, kernel_size, sigma):
-    """Apply Gaussian smoothing to data using the specified kernel size and sigma."""
+def gaussian_smooth(data: np.ndarray, kernel_size: int = GAUSSIAN_KERNEL_SIZE, 
+                   sigma: float = GAUSSIAN_SIGMA) -> np.ndarray:
+    """
+    Apply Gaussian smoothing to a 1D signal with reflection padding to handle boundaries.
+    
+    Args:
+        data: Input 1D signal to be smoothed
+        kernel_size: Size of Gaussian kernel (odd integer)
+        sigma: Standard deviation of Gaussian kernel
+        
+    Returns:
+        Smoothed 1D signal with same length as input
+    """
+    # Generate and normalize Gaussian kernel
     kernel = gaussian_kernel(kernel_size, sigma)
-    kernel /= np.sum(kernel)  # Normalize the kernel
-    # Create mirrored boundaries
+    kernel /= np.sum(kernel)  # Normalize kernel to sum to 1
+    
+    # Create mirrored boundary to avoid edge effects
     extended_data = np.pad(data, pad_width=kernel_size//2, mode='reflect')
+    
+    # Apply convolution and return valid region (same length as input)
     smoothed_data = convolve(extended_data, kernel, mode='valid')
     return smoothed_data
 
-def load_one_file(file_path):
-    """Load matrix from file and transpose it."""
-    matrix = np.loadtxt(file_path)
-    transposed_matrix = np.transpose(matrix)
-    return transposed_matrix
+def load_one_file(file_path: str) -> np.ndarray:
+    """
+    Load matrix from text file and return its transpose.
+    
+    Args:
+        file_path: Path to input text file containing matrix data
+        
+    Returns:
+        Transposed numpy array of the loaded matrix
+    """
+    try:
+        matrix = np.loadtxt(file_path)
+        transposed_matrix = np.transpose(matrix)
+        return transposed_matrix
+    except Exception as e:
+        logging.error(f"Error loading file {file_path}: {str(e)}")
+        raise
 
-def compute_derivative(series):
-    """Compute the first derivative of the series with boundary handling."""
-    Dq = np.zeros_like(series)
+def compute_derivative(series: np.ndarray) -> np.ndarray:
+    """
+    Compute first-order derivative of a 1D signal with boundary handling.
+    
+    Uses central difference for inner points and replicates edge values for boundaries.
+    
+    Args:
+        series: Input 1D signal
+        
+    Returns:
+        Derivative signal with same length as input
+    """
+    # Initialize derivative array with zeros
+    derivative = np.zeros_like(series)
+    
+    # Compute central difference for inner points
     for i in range(1, len(series) - 1):
-        Dq[i] = (series[i] - series[i - 1] + (series[i + 1] - series[i - 1]) / 2) / 2
-    Dq[0] = Dq[1]  # Boundary handling
-    Dq[-1] = Dq[-2]  # Boundary handling
-    return Dq
+        derivative[i] = (series[i] - series[i - 1] + (series[i + 1] - series[i - 1]) / 2) / 2
+    
+    # Boundary handling - replicate edge values
+    derivative[0] = derivative[1]
+    derivative[-1] = derivative[-2]
+    
+    return derivative
 
-def cal_dis_mat(row1, row2, cols):
-    """Calculate distance matrix between two rows based on their derivatives."""
-    A_deriv = compute_derivative(row1)
-    B_deriv = compute_derivative(row2)
-    dis = np.zeros((cols, cols))
-    for li in range(0, cols):
-        for lj in range(0, cols):
-            # Calculate distance matrix between derivatives
-            dis[li, lj] = np.sqrt((A_deriv[li] - B_deriv[lj]) ** 2)
-    return dis
+def calculate_distance_matrix(row1: np.ndarray, row2: np.ndarray, sequence_length: int) -> np.ndarray:
+    """
+    Calculate distance matrix based on first derivatives of two sequences.
+    Uses Euclidean distance (square root of squared differences) between derivatives.
+    
+    Args:
+        row1: First input sequence (1D array)
+        row2: Second input sequence (1D array)
+        sequence_length: Length of input sequences
+        
+    Returns:
+        Distance matrix (sequence_length x sequence_length)
+    """
+    # Compute first derivatives of input sequences
+    deriv1 = compute_derivative(row1)
+    deriv2 = compute_derivative(row2)
+    
+    # Initialize distance matrix
+    distance_matrix = np.zeros((sequence_length, sequence_length))
+    
+    # Calculate Euclidean distance between all derivative pairs
+    for i in range(sequence_length):
+        for j in range(sequence_length):
+            distance_matrix[i, j] = np.sqrt((deriv1[i] - deriv2[j]) ** 2)
+    
+    return distance_matrix
 
-def dtw_from_distance_matrix(dis_mat):
-    """Compute DTW matrix from the distance matrix."""
-    n, m = dis_mat.shape
-    dtw_matrix = np.zeros((n+1, m+1))
-    for i in range(n+1):
-        for j in range(m+1):
-            dtw_matrix[i, j] = np.inf
+def dtw_from_distance_matrix(distance_matrix: np.ndarray) -> np.ndarray:
+    """
+    Compute Dynamic Time Warping (DTW) cost matrix from distance matrix.
+    
+    The DTW matrix starts at (1,1) with meaningful values, (0,0) = 0 represents
+    the starting point with no prior data. All other (0,j) and (i,0) are infinity.
+    
+    Args:
+        distance_matrix: Input distance matrix (n x m)
+        
+    Returns:
+        DTW cost matrix ((n+1) x (m+1))
+    """
+    n, m = distance_matrix.shape
+    # Initialize DTW matrix with infinity
+    dtw_matrix = np.full((n+1, m+1), np.inf)
+    # Set starting point cost to 0
     dtw_matrix[0, 0] = 0
-    # Note that where i=0 or j=0 are set to infinity, so when (u=1, v>1) or (u>1, v=1), they won't transfer from u=0 or v=0
+    
+    # Fill DTW matrix
     for i in range(1, n+1):
         for j in range(1, m+1):
-            cost = dis_mat[i-1, j-1]
-            dtw_matrix[i, j] = cost + min(dtw_matrix[i-1, j], dtw_matrix[i, j-1], dtw_matrix[i-1, j-1])
+            # Current cost from distance matrix
+            cost = distance_matrix[i-1, j-1]
+            # Minimum cost from three possible directions (insert, delete, match)
+            dtw_matrix[i, j] = cost + min(
+                dtw_matrix[i-1, j],    # Insert (up)
+                dtw_matrix[i, j-1],    # Delete (left)
+                dtw_matrix[i-1, j-1]   # Match (diagonal)
+            )
+    
     return dtw_matrix
 
-def backtrack_dtw(dtw_matrix):
-    """Find the path minimizing total distance between two sequences."""
+def backtrack_dtw(dtw_matrix: np.ndarray) -> List[Tuple[int, int]]:
+    """
+    Backtrack through DTW matrix to find optimal alignment path.
+    
+    Finds the path with minimum total distance between two sequences.
+    Path coordinates are already adjusted to match original sequence indices.
+    
+    Args:
+        dtw_matrix: DTW cost matrix from dtw_from_distance_matrix
+        
+    Returns:
+        List of (i,j) tuples representing the optimal alignment path
+    """
+    # Start from bottom-right corner
     i, j = dtw_matrix.shape[0] - 1, dtw_matrix.shape[1] - 1
-    path = [(i-1, j-1)]
+    path = [(i-1, j-1)]  # Adjust coordinates to match original sequences
+    
+    # Backtrack until reaching near start
     while i > 1 or j > 1:
-        # When i == 1, only move j // When j == 1, only move i
+        # Boundary cases - can only move in one direction
         if i == 1:
             j -= 1
         elif j == 1:
             i -= 1
-        # When both i > 1 and j > 1, choose the minimum value among three possible moves
+        # Main case - choose direction with minimum cost
         else:
-            if dtw_matrix[i-1, j] == min(dtw_matrix[i-1, j-1], dtw_matrix[i-1, j], dtw_matrix[i, j-1]):
-                i -= 1
-            elif dtw_matrix[i, j-1] == min(dtw_matrix[i-1, j-1], dtw_matrix[i-1, j], dtw_matrix[i, j-1]):
-                j -= 1
+            # Find minimum cost from three possible previous positions
+            min_cost = min(dtw_matrix[i-1, j-1], dtw_matrix[i-1, j], dtw_matrix[i, j-1])
+            
+            if dtw_matrix[i-1, j] == min_cost:
+                i -= 1  # Move up
+            elif dtw_matrix[i, j-1] == min_cost:
+                j -= 1  # Move left
             else:
-                i -= 1
+                i -= 1  # Move diagonally
                 j -= 1
+        
         path.append((i-1, j-1))
+    
+    # Reverse path to get forward direction
     path.reverse()
     return path
 
-def sliding_window_DTW(seq1, seq2, window_size=10, stride=1):
+def warp_sequences(seq_a: np.ndarray, seq_b: np.ndarray, path: List[Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Compute DTW within a sliding window for two sequences and return aligned sequences for each window.
-
-    Parameters:
-    :param seq1: First sequence.
-    :param seq2: Second sequence.
-    :param window_size: Size of the sliding window.
-    :param stride: Number of positions to slide the window at each step.
-    :param path_cal: Record matching count of warping paths.
-
+    Warp two sequences according to DTW alignment path.
+    
+    Important: Do NOT subtract 1 from indices - path coordinates already match
+    original sequence indices after backtracking.
+    
+    Args:
+        seq_a: First original sequence (1D array)
+        seq_b: Second original sequence (1D array)
+        path: DTW alignment path as list of (i,j) tuples
+        
     Returns:
-    :return: A list of tuples containing aligned sequences for each window.
+        Tuple of aligned sequences (warped_seq_a, warped_seq_b)
     """
-    all_aligned_pairs = []
-    # If storing sequence alignment paths, uncomment below
-    # paths = []
-    # Initialize warping path calculation matrix
-    path_cal = np.zeros((len(seq1)+5, len(seq2)+5))
-
-    for start in range(0, len(seq1) - window_size + 1, stride):
-        end = start + window_size
-
-        normalized_seq1 = seq1[start:end]
-        normalized_seq2 = seq2[start:end]
-
-        dis_mat = cal_dis_mat(normalized_seq1, normalized_seq2, end - start)
-        dtw_matrix = dtw_from_distance_matrix(dis_mat)
-        path = backtrack_dtw(dtw_matrix)
-
-        for (i, j) in path:
-            path_cal[i, j] += 1
-        # paths.append(path)
-        aligned_a, aligned_b = warp_sequences(normalized_seq1, normalized_seq2, path)
-        all_aligned_pairs.append((aligned_a, aligned_b))
-
-    # return all_aligned_pairs, paths
-    return all_aligned_pairs, path_cal
-
-def cal_window_D(ormat, n, window_size, stride, path_cal_save_folder, patient_id):
-    '''
-    Calculate Pearson correlation coefficients before and after warping between signals in the raw signal matrix.
-    :param ormat: Original signal matrix
-    :param n: Number of signals
-    '''
-    # Gaussian smoothing
-    kernel_size = 9
-    # kernel_size = 5
-    # kernel_size needs to be odd, sigma is standard deviation
-    sigma = 2
-    for i in range(n):
-        data = ormat[i]
-        smoothed_data = gaussian_smooth(data, kernel_size, sigma)
-        ormat[i] = smoothed_data
-    # Perform normalization on the entire sequence first
-
-    retp = np.zeros((n, n))
-    # path_cal matrix records matching counts of warping paths
-    ALL_ROI_path_cal = np.zeros((n, n))
-    # !!! Note, need to record inside because calculations are done between different ROIs
-    # Calculate warping path matrix D
-    # For row i and row j
-    for ri in range(0, n):
-        for rj in range(0, n):
-            if ri == rj:
-                retp[ri][rj] = 1
-                continue
-            if ri > rj:
-                continue
-            else:
-                # Pass full length sequences
-                aligned_pairs, t_path_cal = sliding_window_DTW(ormat[ri], ormat[rj], window_size, stride)
-                # Calculate Pearson correlation coefficients based on all aligned sequences
-                local_pearsons = [pearson_correlation(pair[0], pair[1]) for pair in aligned_pairs]
-                # Compute and save average Pearson correlation coefficient
-                retp[ri][rj] = np.mean(local_pearsons)
-                retp[rj][ri] = retp[ri][rj]
-
-                # Calculate matching counts of warping paths
-                path_cal_sum = np.sum(t_path_cal)
-                # Sum corresponding rows and columns
-                ri_cal = 0.0
-                rj_cal = 0.0
-                sqe_len = len(ormat[ri])
-                # Note: path is (0,0),(0,1),(1,2)...(n,n)
-                for tmp_i in range(sqe_len+3):
-                    for tmp_j in range(sqe_len+3):
-                        ri_cal = ri_cal + (tmp_i * t_path_cal[tmp_i][tmp_j])
-                        rj_cal = rj_cal + (tmp_j * t_path_cal[tmp_i][tmp_j])
-
-                # Calculate mean difference
-                path_val = (ri_cal - rj_cal) / (path_cal_sum)
-                ALL_ROI_path_cal[ri][rj] = path_val
-                ALL_ROI_path_cal[rj][ri] = -path_val
-
-                # path_output_path = os.path.join(path_cal_save_folder, patient_id+'_'+str(ri)+'_'+str(rj)+'.txt')
-                # save_mat_to_txt(path_cal, path_output_path)
-                # Do not store, calculate path directly
-
-    return retp, ALL_ROI_path_cal
-
-def warp_sequences(seq_a, seq_b, path):
-    '''
-    seq_a, seq_b: Two original sequences
-    path: Warping path between the two sequences
-    path：(1,1),(1,2),(2,3)...(n,n)
-    Restore warped sequences
-    '''
     aligned_a = []
     aligned_b = []
 
+    # Align sequences according to path
     for (i, j) in path:
-        aligned_a.append(seq_a[i])  # Subtract 1 because path is based on dtw_matrix which is larger by 1 than seq_a and seq_b
+        aligned_a.append(seq_a[i])
         aligned_b.append(seq_b[j])
-    return aligned_a, aligned_b
+    
+    # Convert to numpy arrays for consistency
+    return np.array(aligned_a), np.array(aligned_b)
 
-def pearson_correlation(seq1, seq2):
-    """Calculate Pearson correlation coefficient between two sequences."""
-    if(np.std(seq1)==0 or np.std(seq1)==0):
-        print("0000！")
-    return np.corrcoef(seq1, seq2)[0, 1]
+def pearson_correlation(seq1: np.ndarray, seq2: np.ndarray) -> float:
+    """
+    Calculate Pearson correlation coefficient between two sequences.
+    
+    Args:
+        seq1: First input sequence (1D array)
+        seq2: Second input sequence (1D array)
+        
+    Returns:
+        Pearson correlation coefficient (-1 to 1)
+        
+    Note:
+        Returns 0 and logs warning if either sequence has zero standard deviation
+    """
+    # Check for zero standard deviation (avoid division by zero)
+    if np.std(seq1) == 0 or np.std(seq2) == 0:  # Fixed typo (seq1 repeated)
+        logging.warning("Zero standard deviation detected in input sequences!")
+        return 0.0
+    
+    try:
+        return np.corrcoef(seq1, seq2)[0, 1]
+    except Exception as e:
+        logging.error(f"Error calculating Pearson correlation: {str(e)}")
+        return 0.0
 
-def save_mat_to_txt(matrix, output_path):
-    """Save matrix to text file."""
-    np.savetxt(output_path, matrix, delimiter=' ')
+def calculate_dtw_correlation_matrix(original_matrix: np.ndarray, 
+                                   num_sequences: int = NUM_SEQUENCES) -> np.ndarray:
+    """
+    Calculate Pearson correlation matrix using DTW alignment on Gaussian-smoothed sequences.
+    
+    Args:
+        original_matrix: Input matrix with sequences as rows
+        num_sequences: Number of sequences (rows) to process
+        
+    Returns:
+        Symmetric Pearson correlation matrix (num_sequences x num_sequences)
+    """
+    # Apply Gaussian smoothing to all sequences
+    smoothed_matrix = original_matrix.copy()
+    for i in range(num_sequences):
+        smoothed_matrix[i] = gaussian_smooth(original_matrix[i])
+    
+    sequence_length = len(smoothed_matrix[0])
+    # Initialize correlation matrix
+    correlation_matrix = np.zeros((num_sequences, num_sequences))
+    
+    # Set diagonal to 1 (perfect self-correlation)
+    np.fill_diagonal(correlation_matrix, 1.0)
+    
+    # Calculate correlation for all unique sequence pairs (i,j) where i < j
+    for row_i in tqdm(range(num_sequences), desc="Processing sequences", leave=False):
+        for row_j in range(row_i + 1, num_sequences):
+            try:
+                # Calculate distance matrix based on derivatives
+                distance_matrix = calculate_distance_matrix(
+                    smoothed_matrix[row_i], 
+                    smoothed_matrix[row_j], 
+                    sequence_length
+                )
+                
+                # Compute DTW matrix and optimal alignment path
+                dtw_matrix = dtw_from_distance_matrix(distance_matrix)
+                alignment_path = backtrack_dtw(dtw_matrix)
+                
+                # Warp sequences according to optimal path
+                aligned_seq1, aligned_seq2 = warp_sequences(
+                    smoothed_matrix[row_i], 
+                    smoothed_matrix[row_j], 
+                    alignment_path
+                )
+                
+                # Calculate Pearson correlation for aligned sequences
+                correlation = pearson_correlation(aligned_seq1, aligned_seq2)
+                
+                # Populate symmetric positions in correlation matrix
+                correlation_matrix[row_i][row_j] = correlation
+                correlation_matrix[row_j][row_i] = correlation
+                
+            except Exception as e:
+                logging.error(f"Error processing pair ({row_i},{row_j}): {str(e)}")
+                # Set to 0 if error occurs
+                correlation_matrix[row_i][row_j] = 0.0
+                correlation_matrix[row_j][row_i] = 0.0
+    
+    return correlation_matrix
 
-def process_one_file(filename, window_size, stride, in_folder, out_folder):
-    # Define input and output file paths, read matrix (already transposed)
-    in_file_path = os.path.join(in_folder, filename)
-    outp_file_path = os.path.join(out_folder, filename)
-    matrix = load_one_file(in_file_path)
+def save_matrix_to_text(matrix: np.ndarray, output_path: str) -> None:
+    """
+    Save numpy matrix to text file with comma delimiter.
+    
+    Args:
+        matrix: Numpy array to be saved
+        output_path: Path to output text file
+    """
+    try:
+        # Create output directory if it doesn't exist
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        np.savetxt(output_path, matrix, delimiter=',', fmt='%.6f')
+        logging.info(f"Successfully saved matrix to {output_path}")
+    except Exception as e:
+        logging.error(f"Error saving matrix to {output_path}: {str(e)}")
+        raise
 
-    path_cal_save_folder = out_folder + 'path_cal/'
-    if not os.path.exists(path_cal_save_folder):
-        os.makedirs(path_cal_save_folder)
+def process_single_file(file_info: Tuple[str, str, str]) -> None:
+    """
+    Process a single ROI signal file: load, compute DTW correlation, save results.
+    
+    Args:
+        file_info: Tuple containing (filename, input_folder, output_folder)
+    """
+    filename, input_folder, output_folder = file_info
+    
+    try:
+        logging.info(f"Starting processing of {filename}")
+        
+        # Create full file paths
+        input_path = os.path.join(input_folder, filename)
+        output_path = os.path.join(output_folder, filename)
+        
+        # Load and transpose matrix
+        signal_matrix = load_one_file(input_path)
+        
+        # Calculate DTW-based correlation matrix
+        correlation_matrix = calculate_dtw_correlation_matrix(signal_matrix)
+        
+        # Save results
+        save_matrix_to_text(correlation_matrix, output_path)
+        
+        logging.info(f"Completed processing of {filename}")
+        
+    except Exception as e:
+        logging.error(f"Failed to process {filename}: {str(e)}")
+        raise
 
-    patient_id = filename.replace('ROISignal_', '')
-    patient_id = patient_id.replace('_CN.txt', '')
-    patient_id = patient_id.replace('_AD.txt', '')
+def process_one_file(filename: str, input_folder: str = INPUT_FOLDER, 
+                    output_folder: str = OUTPUT_FOLDER) -> None:
+    """
+    Wrapper function to process a single file with default folder paths.
+    
+    Args:
+        filename: Name of input file
+        input_folder: Path to input directory
+        output_folder: Path to output directory
+    """
+    process_single_file((filename, input_folder, output_folder))
 
-    # Calculate and save warped Pearson correlation coefficient matrix
-    retp, path_cal = cal_window_D(matrix, 90, window_size, stride, path_cal_save_folder, patient_id)
-    save_mat_to_txt(retp, outp_file_path)
-    path_output_path = os.path.join(out_folder, filename + '_path_cal.txt')
-    save_mat_to_txt(path_cal, path_output_path)
+def sequential_processing() -> None:
+    """Process files one at a time (single-threaded)."""
+    # Get list of text files in input folder
+    file_list = [f for f in os.listdir(INPUT_FOLDER) if f.endswith(".txt")]
+    
+    # Process each file with progress bar
+    for filename in tqdm(file_list, desc="Processing files (sequential)"):
+        process_one_file(filename)
 
-def main():
-    # Iterate over all files in the directory
-    for filename in os.listdir(in_folder):
-        if filename.endswith(".txt"):
-            for ws in window_size:
-                for st in stride:
-                    # Iterate over window sizes and strides
-                    now_WDO_folder = os.path.join(out_folder, f"{ws}_{st}")
-                    if not os.path.exists(now_WDO_folder):
-                        os.makedirs(now_WDO_folder)
-                    # Directly call processing function
-                    process_one_file(filename, ws, st, in_folder, now_WDO_folder)
-                    print(f"Processing file {filename} complete!")
+def parallel_processing(max_workers: Optional[int] = None) -> None:
+    """
+    Process files in parallel using multiple CPU cores for faster execution.
+    
+    Args:
+        max_workers: Number of parallel processes (default: number of CPU cores)
+    """
+    # Set default to number of CPU cores if not specified
+    if max_workers is None:
+        max_workers = multiprocessing.cpu_count()
+    
+    # Get list of text files in input folder
+    file_list = [f for f in os.listdir(INPUT_FOLDER) if f.endswith(".txt")]
+    
+    # Create list of file info tuples for parallel processing
+    file_info_list = [(f, INPUT_FOLDER, OUTPUT_FOLDER) for f in file_list]
+    
+    logging.info(f"Starting parallel processing with {max_workers} workers")
+    
+    # Process files in parallel with progress bar
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all tasks
+        future_to_file = {executor.submit(process_single_file, info): info[0] 
+                         for info in file_info_list}
+        
+        # Track progress
+        for future in tqdm(as_completed(future_to_file), total=len(file_list), 
+                          desc="Processing files (parallel)"):
+            filename = future_to_file[future]
+            try:
+                future.result()  # Get result to catch exceptions
+            except Exception as e:
+                logging.error(f"Parallel processing failed for {filename}: {str(e)}")
+    
+    logging.info("Parallel processing completed")
+
+def main(use_parallel: bool = True, max_workers: Optional[int] = None) -> None:
+    """
+    Main function to process all ROI signal files with DTW alignment.
+    
+    Args:
+        use_parallel: If True, use parallel processing (faster for multiple files)
+        max_workers: Number of parallel processes (only for parallel mode)
+    """
+    # Create output directory if it doesn't exist
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+    
+    logging.info("Starting DTW correlation processing")
+    
+    try:
+        if use_parallel:
+            parallel_processing(max_workers)
+        else:
+            sequential_processing()
+        logging.info("All files processed successfully")
+    except Exception as e:
+        logging.error(f"Processing failed: {str(e)}")
+        raise
 
 if __name__ == '__main__':
-    main()
-
-
+    # Run with parallel processing (use all CPU cores)
+    # Set use_parallel=False for sequential processing
+    main(use_parallel=True, max_workers=None)
